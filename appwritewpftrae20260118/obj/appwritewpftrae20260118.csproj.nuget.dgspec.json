@@ -1,0 +1,70 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\chbon\\source\\repos\\appwritewpftrae20260118\\appwritewpftrae20260118\\appwritewpftrae20260118.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\chbon\\source\\repos\\appwritewpftrae20260118\\appwritewpftrae20260118\\appwritewpftrae20260118.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\chbon\\source\\repos\\appwritewpftrae20260118\\appwritewpftrae20260118\\appwritewpftrae20260118.csproj",
+        "projectName": "appwritewpftrae20260118",
+        "projectPath": "C:\\Users\\chbon\\source\\repos\\appwritewpftrae20260118\\appwritewpftrae20260118\\appwritewpftrae20260118.csproj",
+        "packagesPath": "C:\\Users\\chbon\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\chbon\\source\\repos\\appwritewpftrae20260118\\appwritewpftrae20260118\\obj\\",
+        "projectStyle": "PackageReference",
+        "skipContentFileWrite": true,
+        "UsingMicrosoftNETSdk": false,
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\chbon\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net472"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net472": {
+            "projectReferences": {}
+          }
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net472": {
+          "dependencies": {
+            "Appwrite": {
+              "target": "Package",
+              "version": "[0.24.0, )"
+            }
+          }
+        }
+      },
+      "runtimes": {
+        "win": {
+          "#import": []
+        },
+        "win-arm64": {
+          "#import": []
+        },
+        "win-x64": {
+          "#import": []
+        },
+        "win-x86": {
+          "#import": []
+        }
+      }
+    }
+  }
+}
