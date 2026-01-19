@@ -153,6 +153,38 @@ namespace appwritewpftrae20260118
                 Icon = SystemIcons.Information,
                 Text = "訂閱到期提醒"
             };
+
+            // 左鍵單擊開啟 (回應使用者需求)
+            _notifyIcon.MouseClick += (s, e) =>
+            {
+                if (e.Button == Forms.MouseButtons.Left)
+                {
+                    RestoreWindow();
+                }
+            };
+
+            // 雙擊開啟
+            _notifyIcon.DoubleClick += (s, e) => RestoreWindow();
+
+            // 右鍵選單
+            var contextMenu = new Forms.ContextMenu();
+            contextMenu.MenuItems.Add("開啟", (s, e) => RestoreWindow());
+            contextMenu.MenuItems.Add("離開", (s, e) =>
+            {
+                _notifyIcon.Visible = false;
+                _notifyIcon.Dispose();
+                Application.Current.Shutdown();
+            });
+            _notifyIcon.ContextMenu = contextMenu;
+        }
+
+        private void RestoreWindow()
+        {
+            // 如果視窗還沒載入或已關閉，可能需要重新建立，但此處假設 Application.Current.MainWindow 存在
+            Show();
+            WindowState = WindowState.Normal;
+            ShowInTaskbar = true;
+            Activate();
         }
 
         private void ScheduleDailyExpiryCheck()
