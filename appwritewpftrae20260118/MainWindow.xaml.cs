@@ -105,7 +105,8 @@ namespace appwritewpftrae20260118
 
                 var documents = await databases.ListDocuments(
                     databaseId: databaseId,
-                    collectionId: subscriptionCollectionId
+                    collectionId: subscriptionCollectionId,
+                    queries: new List<string> { Query.Limit(100) }
                 );
 
                 var list = new List<Subscription>();
@@ -247,7 +248,8 @@ namespace appwritewpftrae20260118
 
                 var allDocuments = await databases.ListDocuments(
                     databaseId: databaseId,
-                    collectionId: subscriptionCollectionId
+                    collectionId: subscriptionCollectionId,
+                    queries: new List<string> { Query.Limit(100) }
                 );
 
                 var expiring = new List<Subscription>();
@@ -293,7 +295,8 @@ namespace appwritewpftrae20260118
                                    daysLeft == 1 ? "明天到期" :
                                    $"{daysLeft} 天後到期";
 
-                    messages.Add($"【{sub.Account}】「{sub.Name}」{daysText}（{sub.NextDate?.ToString("yyyy-MM-dd")}）");
+                    var accountPart = string.IsNullOrWhiteSpace(sub.Account) ? "" : $"【{sub.Account}】";
+                    messages.Add($"{accountPart}「{sub.Name}」{daysText}（{sub.NextDate?.ToString("yyyy-MM-dd")}）");
                 }
 
                 // 視窗內通知
