@@ -108,29 +108,40 @@ namespace appwritewpftrae20260118
                     collectionId: subscriptionCollectionId
                 );
 
+                var list = new List<Subscription>();
+
+                foreach (var document in documents.Documents)
+                {
+                    var data = document.Data ?? new Dictionary<string, object>();
+
+                    list.Add(new Subscription
+                    {
+                        Id = document.Id,
+                        Name = GetString(data, "name"),
+                        Site = GetString(data, "site"),
+                        Price = GetNullableInt(data, "price"),
+                        NextDate = GetNullableDateTime(data, "nextdate"),
+                        Note = GetString(data, "note"),
+                        Account = GetString(data, "account"),
+                        CreatedAt = document.CreatedAt,
+                        UpdatedAt = document.UpdatedAt
+                    });
+                }
+
+                // 依下次扣款日由近至遠排序（無日期排最後）
+                list.Sort((a, b) =>
+                {
+                    if (!a.NextDate.HasValue && !b.NextDate.HasValue) return 0;
+                    if (!a.NextDate.HasValue) return 1;
+                    if (!b.NextDate.HasValue) return -1;
+                    return a.NextDate.Value.CompareTo(b.NextDate.Value);
+                });
+
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     Subscriptions.Clear();
-
-                    foreach (var document in documents.Documents)
-                    {
-                        var data = document.Data ?? new Dictionary<string, object>();
-
-                        var subscription = new Subscription
-                        {
-                            Id = document.Id,
-                            Name = GetString(data, "name"),
-                            Site = GetString(data, "site"),
-                            Price = GetNullableInt(data, "price"),
-                            NextDate = GetNullableDateTime(data, "nextdate"),
-                            Note = GetString(data, "note"),
-                            Account = GetString(data, "account"),
-                            CreatedAt = document.CreatedAt,
-                            UpdatedAt = document.UpdatedAt
-                        };
-
-                        Subscriptions.Add(subscription);
-                    }
+                    foreach (var sub in list)
+                        Subscriptions.Add(sub);
                 });
 
                 StatusMessage = $"已載入 {Subscriptions.Count} 筆訂閱資料。";
