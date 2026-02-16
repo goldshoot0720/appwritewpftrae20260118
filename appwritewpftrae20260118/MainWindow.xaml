@@ -1,0 +1,122 @@
+<Window x:Class="appwritewpftrae20260118.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:appwritewpftrae20260118"
+        mc:Ignorable="d"
+        Title="Subscription Viewer"
+        Height="600"
+        Width="1000"
+        WindowStartupLocation="CenterScreen"
+        Background="#020617">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Vertical">
+            <TextBlock Text="訂閱管理"
+                       FontSize="24"
+                       FontWeight="Bold"
+                       Foreground="White" />
+            <TextBlock Text="顯示來自 Appwrite SUBSCRIPTION 集合的訂閱資料"
+                       Margin="0,4,0,0"
+                       FontSize="12"
+                       Foreground="#9CA3AF" />
+        </StackPanel>
+
+        <DockPanel Grid.Row="1" Margin="0,16,0,16">
+            <Button x:Name="RefreshButton"
+                    Content="重新整理"
+                    Width="100"
+                    Height="32"
+                    Margin="0,0,12,0"
+                    Padding="8,0"
+                    Foreground="White"
+                    Background="#2563EB"
+                    BorderBrush="#1D4ED8"
+                    HorizontalAlignment="Left"
+                    Cursor="Hand"
+                    DockPanel.Dock="Left"
+                    Click="RefreshButton_Click" />
+            <TextBlock Text="{Binding StatusMessage}"
+                       VerticalAlignment="Center"
+                       Foreground="#9CA3AF" />
+        </DockPanel>
+
+        <Border Grid.Row="2"
+                CornerRadius="8"
+                Background="#020617"
+                BorderBrush="#1F2937"
+                BorderThickness="1"
+                Padding="1">
+            <DataGrid ItemsSource="{Binding Subscriptions}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      GridLinesVisibility="None"
+                      HeadersVisibility="Column"
+                      RowBackground="#020617"
+                      AlternatingRowBackground="#020617"
+                      Background="#020617"
+                      Foreground="#E5E7EB"
+                      HorizontalGridLinesBrush="#111827"
+                      VerticalGridLinesBrush="#111827"
+                      BorderThickness="0"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      CanUserReorderColumns="True"
+                      CanUserResizeRows="False"
+                      RowHeight="32"
+                      ColumnHeaderHeight="32">
+                <DataGrid.Resources>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#0F172A" />
+                        <Setter Property="Foreground" Value="#F9FAFB" />
+                        <Setter Property="FontWeight" Value="SemiBold" />
+                        <Setter Property="BorderThickness" Value="0,0,0,1" />
+                        <Setter Property="BorderBrush" Value="#111827" />
+                        <Setter Property="Padding" Value="8,0" />
+                        <Setter Property="HorizontalContentAlignment" Value="Left" />
+                    </Style>
+                    <Style TargetType="DataGridRow">
+                        <Setter Property="Background" Value="#020617" />
+                        <Setter Property="Foreground" Value="#E5E7EB" />
+                        <Setter Property="FontSize" Value="13" />
+                        <Setter Property="BorderThickness" Value="0,0,0,1" />
+                        <Setter Property="BorderBrush" Value="#111827" />
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#111827" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#1D4ED8" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.Resources>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="120" />
+                    <DataGridTextColumn Header="名稱" Binding="{Binding Name}" Width="150" />
+                    <DataGridTextColumn Header="網站" Binding="{Binding Site}" Width="200" />
+                    <DataGridTextColumn Header="價格" Binding="{Binding Price}" Width="80" />
+                    <DataGridTextColumn Header="下次扣款日" Binding="{Binding NextDateString}" Width="120" />
+                    <DataGridTextColumn Header="帳號" Binding="{Binding Account}" Width="150" />
+                    <DataGridTextColumn Header="備註" Binding="{Binding Note}" Width="*" />
+                    <DataGridTextColumn Header="建立時間" Binding="{Binding CreatedAtString}" Width="140" />
+                    <DataGridTextColumn Header="更新時間" Binding="{Binding UpdatedAtString}" Width="140" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+
+        <TextBlock Grid.Row="3"
+                   Margin="0,12,0,0"
+                   HorizontalAlignment="Right"
+                   Foreground="#4B5563"
+                   FontSize="11"
+                   Text="資料來源：Appwrite Databases / SUBSCRIPTION" />
+    </Grid>
+</Window>
