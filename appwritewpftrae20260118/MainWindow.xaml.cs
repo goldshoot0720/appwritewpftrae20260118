@@ -263,9 +263,18 @@ namespace appwritewpftrae20260118
                     }
                 }
 
-                if (expiring.Count == 0) return;
+                if (expiring.Count == 0)
+                {
+                    // 沒有到期項目，隱藏視窗內通知
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        NotificationPanel.Visibility = Visibility.Collapsed;
+                    });
+                    return;
+                }
 
-                // 每個項目一條通知，間隔 3 秒
+                // 建立通知訊息清單
+                var messages = new List<string>();
                 foreach (var sub in expiring)
                 {
                     var daysLeft = (sub.NextDate.Value.Date - today).Days;
@@ -273,13 +282,24 @@ namespace appwritewpftrae20260118
                                    daysLeft == 1 ? "明天到期" :
                                    $"{daysLeft} 天後到期";
 
-                    var message = $"【{sub.Account}】「{sub.Name}」{daysText}（{sub.NextDate?.ToString("yyyy-MM-dd")}）";
+                    messages.Add($"【{sub.Account}】「{sub.Name}」{daysText}（{sub.NextDate?.ToString("yyyy-MM-dd")}）");
+                }
 
+                // 視窗內通知
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    NotificationList.ItemsSource = messages;
+                    NotificationPanel.Visibility = Visibility.Visible;
+                });
+
+                // 系統托盤通知，每個項目一條，間隔 3 秒
+                foreach (var message in messages)
+                {
                     _notifyIcon.BalloonTipTitle = "🔔 訂閱到期提醒";
                     _notifyIcon.BalloonTipText = message;
                     _notifyIcon.ShowBalloonTip(5000);
 
-                    await Task.Delay(3500); // 等待上一條通知顯示後再發下一條
+                    await Task.Delay(3500);
                 }
             }
             catch

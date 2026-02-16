@@ -14,6 +14,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
@@ -48,7 +49,43 @@
                        Foreground="#9CA3AF" />
         </DockPanel>
 
-        <Border Grid.Row="2"
+        <!-- 視窗內通知區域 -->
+        <Border x:Name="NotificationPanel"
+                Grid.Row="2"
+                Visibility="Collapsed"
+                Margin="0,0,0,12"
+                CornerRadius="8"
+                Background="#1C1507"
+                BorderBrush="#78350F"
+                BorderThickness="1"
+                Padding="12">
+            <StackPanel>
+                <TextBlock Text="🔔 訂閱到期提醒"
+                           FontSize="14"
+                           FontWeight="Bold"
+                           Foreground="#FCD34D"
+                           Margin="0,0,0,8" />
+                <ItemsControl x:Name="NotificationList">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Margin="0,2"
+                                    Padding="10,6"
+                                    CornerRadius="6"
+                                    Background="#292008"
+                                    BorderBrush="#92400E"
+                                    BorderThickness="1">
+                                <TextBlock Text="{Binding}"
+                                           Foreground="#FDE68A"
+                                           FontSize="13"
+                                           TextWrapping="Wrap" />
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="3"
                 CornerRadius="8"
                 Background="#020617"
                 BorderBrush="#1F2937"
@@ -112,7 +149,7 @@
             </DataGrid>
         </Border>
 
-        <TextBlock Grid.Row="3"
+        <TextBlock Grid.Row="4"
                    Margin="0,12,0,0"
                    HorizontalAlignment="Right"
                    Foreground="#4B5563"
