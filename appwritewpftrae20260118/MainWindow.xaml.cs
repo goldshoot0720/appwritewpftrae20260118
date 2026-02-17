@@ -190,6 +190,14 @@ namespace appwritewpftrae20260118
             _notifyIcon.ContextMenu = contextMenu;
         }
 
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            e.Cancel = true;
+            Hide();
+            ShowInTaskbar = false;
+            base.OnClosing(e);
+        }
+
         private void RestoreWindow()
         {
             // 如果視窗還沒載入或已關閉，可能需要重新建立，但此處假設 Application.Current.MainWindow 存在
