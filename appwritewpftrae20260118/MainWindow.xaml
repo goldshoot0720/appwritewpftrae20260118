@@ -1,17 +1,17 @@
-<Window x:Class="appwritewpftrae20260118.MainWindow"
+﻿<Window x:Class="appwritewpftrae20260118.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="訂閱管理器"
-        Height="820"
-        Width="1360"
-        MinHeight="720"
-        MinWidth="1180"
+        Title="桌面控制台"
+        Height="860"
+        Width="1440"
+        MinHeight="760"
+        MinWidth="1220"
         WindowStartupLocation="CenterScreen"
         Background="#09111F"
-        FontFamily="Segoe UI Variable Display">
+        FontFamily="Microsoft JhengHei UI">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
         <SolidColorBrush x:Key="WindowSurfaceBrush" Color="#0C1628" />
@@ -104,13 +104,13 @@
             <Setter Property="FontSize" Value="12" />
             <Setter Property="BorderBrush" Value="#233553" />
             <Setter Property="BorderThickness" Value="0,0,0,1" />
-            <Setter Property="Padding" Value="14,0,14,0" />
+            <Setter Property="Padding" Value="12,0,12,0" />
             <Setter Property="HorizontalContentAlignment" Value="Left" />
             <Setter Property="Height" Value="42" />
         </Style>
         <Style x:Key="DataGridCellStyle" TargetType="DataGridCell">
             <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Padding" Value="14,0,14,0" />
+            <Setter Property="Padding" Value="12,0,12,0" />
             <Setter Property="Foreground" Value="#EAF1FA" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="Background" Value="Transparent" />
@@ -182,7 +182,7 @@
                                     <TextBlock Text="DESKTOP CONTROL SURFACE" Foreground="#B2C6E8" FontSize="11" FontWeight="SemiBold" />
                                 </Border>
                                 <TextBlock Text="{Binding CurrentPageTitle}" Margin="0,16,0,0" FontSize="34" FontWeight="SemiBold" Foreground="{StaticResource StrongTextBrush}" />
-                                <TextBlock Text="{Binding CurrentPageSubtitle}" Margin="0,10,0,0" Style="{StaticResource InfoTextStyle}" FontSize="14" MaxWidth="700" />
+                                <TextBlock Text="{Binding CurrentPageSubtitle}" Margin="0,10,0,0" Style="{StaticResource InfoTextStyle}" FontSize="14" MaxWidth="760" />
                             </StackPanel>
                             <Border Grid.Column="1" CornerRadius="22" Background="#14253E" BorderBrush="#29456B" BorderThickness="1" Padding="18">
                                 <Grid>
@@ -211,8 +211,9 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <Button Content="訂閱總覽" Style="{StaticResource MenuButtonStyle}" Click="SubscriptionsMenuButton_Click" />
-                            <Button Content="原油監測" Style="{StaticResource MenuButtonStyle}" Margin="0" Click="OilMonitorMenuButton_Click" />
+                            <Button Content="訂閱到期提醒" Style="{StaticResource MenuButtonStyle}" Click="SubscriptionsMenuButton_Click" />
+                            <Button Content="油價追蹤" Style="{StaticResource MenuButtonStyle}" Click="OilMonitorMenuButton_Click" />
+                            <Button Content="最瞎結婚理由" Style="{StaticResource MenuButtonStyle}" Margin="0" Click="LotteryMenuButton_Click" />
                         </StackPanel>
                         <Border Grid.Column="1" Background="#162640" BorderBrush="#2A4264" BorderThickness="1" CornerRadius="999" Padding="12,6">
                             <TextBlock Text="{Binding ActiveStatusMessage}" Foreground="#C0D2F1" FontSize="12" TextTrimming="CharacterEllipsis" MaxWidth="360" />
@@ -231,7 +232,7 @@
                                 <DockPanel LastChildFill="True">
                                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                                         <Ellipse Width="10" Height="10" Fill="#E7C46C" VerticalAlignment="Center" Margin="0,0,10,0" />
-                                        <TextBlock Text="即將到期提醒" Foreground="{StaticResource WarmTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                        <TextBlock Text="近期到期提醒" Foreground="{StaticResource WarmTextBrush}" FontSize="14" FontWeight="SemiBold" />
                                     </StackPanel>
                                     <TextBlock Text="SUBSCRIPTION ALERTS" Foreground="#C7AF7A" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Right" />
                                 </DockPanel>
@@ -267,8 +268,8 @@
                                         <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="140" />
                                         <DataGridTextColumn Header="名稱" Binding="{Binding Name}" Width="170" />
                                         <DataGridTextColumn Header="網站" Binding="{Binding Site}" Width="220" />
-                                        <DataGridTextColumn Header="價格" Binding="{Binding Price}" Width="92" />
-                                        <DataGridTextColumn Header="下次扣款日" Binding="{Binding NextDateString}" Width="136" />
+                                        <DataGridTextColumn Header="金額" Binding="{Binding Price}" Width="92" />
+                                        <DataGridTextColumn Header="下次扣款" Binding="{Binding NextDateString}" Width="136" />
                                         <DataGridTextColumn Header="帳號" Binding="{Binding Account}" Width="170" />
                                         <DataGridTextColumn Header="備註" Binding="{Binding Note}" Width="*" />
                                         <DataGridTextColumn Header="建立時間" Binding="{Binding CreatedAtString}" Width="148" />
@@ -294,16 +295,16 @@
                             </Grid.ColumnDefinitions>
                             <Border Grid.Column="0" Style="{StaticResource PanelBorderStyle}" Padding="18">
                                 <StackPanel>
-                                    <TextBlock Text="最新 OQD Marker" Foreground="#8EAAD2" FontSize="12" FontWeight="SemiBold" />
+                                    <TextBlock Text="OQD Marker" Foreground="#8EAAD2" FontSize="12" FontWeight="SemiBold" />
                                     <TextBlock Text="{Binding OilCurrentPriceDisplay}" Margin="0,10,0,4" Foreground="{StaticResource StrongTextBrush}" FontSize="28" FontWeight="SemiBold" />
                                     <TextBlock Text="{Binding OilMarkerDateDisplay}" Foreground="{StaticResource SubtleBrush}" FontSize="13" />
                                 </StackPanel>
                             </Border>
                             <Border Grid.Column="2" Style="{StaticResource PanelBorderStyle}" Padding="18">
                                 <StackPanel>
-                                    <TextBlock Text="最近抓取" Foreground="#8EAAD2" FontSize="12" FontWeight="SemiBold" />
+                                    <TextBlock Text="最後抓取時間" Foreground="#8EAAD2" FontSize="12" FontWeight="SemiBold" />
                                     <TextBlock Text="{Binding OilLastFetchDisplay}" Margin="0,10,0,4" Foreground="{StaticResource StrongTextBrush}" FontSize="18" FontWeight="SemiBold" />
-                                    <TextBlock Text="每天 13:00 自動抓取" Foreground="{StaticResource SuccessBrush}" FontSize="13" />
+                                    <TextBlock Text="每天下午 13:00 後可重新抓取" Foreground="{StaticResource SuccessBrush}" FontSize="13" />
                                 </StackPanel>
                             </Border>
                             <Border Grid.Column="4" Style="{StaticResource PanelBorderStyle}" Padding="18">
@@ -337,7 +338,7 @@
                                     </Border>
                                     <Grid Grid.Row="1" Margin="20">
                                         <Canvas x:Name="OilChartCanvas" Background="#101B2E" SizeChanged="OilChartCanvas_SizeChanged" />
-                                        <TextBlock Text="尚無原油歷史資料" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="15" Foreground="{StaticResource SubtleBrush}" Visibility="{Binding OilChartEmptyVisibility}" />
+                                        <TextBlock Text="目前還沒有油價資料" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="15" Foreground="{StaticResource SubtleBrush}" Visibility="{Binding OilChartEmptyVisibility}" />
                                     </Grid>
                                 </Grid>
                                 <Border Grid.Column="1" Background="#101B2E" CornerRadius="0,23,23,0" Padding="18" BorderBrush="#203150" BorderThickness="1,0,0,0">
@@ -348,8 +349,8 @@
                                             <RowDefinition Height="*" />
                                         </Grid.RowDefinitions>
                                         <StackPanel>
-                                            <TextBlock Text="最近紀錄" Foreground="{StaticResource StrongTextBrush}" FontSize="15" FontWeight="SemiBold" />
-                                            <TextBlock Text="每天 13:00 自動補點，手動刷新也會更新今日資料" Margin="0,8,0,0" Foreground="{StaticResource SubtleBrush}" FontSize="12" TextWrapping="Wrap" />
+                                            <TextBlock Text="最近 12 筆" Foreground="{StaticResource StrongTextBrush}" FontSize="15" FontWeight="SemiBold" />
+                                            <TextBlock Text="每筆都會保留牌價日期與實際抓取時間，方便快速比對。" Margin="0,8,0,0" Foreground="{StaticResource SubtleBrush}" FontSize="12" TextWrapping="Wrap" />
                                         </StackPanel>
                                         <ListBox Grid.Row="2" ItemsSource="{Binding OilRecentRecords}" Background="Transparent" BorderThickness="0" Foreground="{StaticResource StrongTextBrush}">
                                             <ListBox.ItemTemplate>
@@ -374,6 +375,116 @@
                                 </Border>
                             </Grid>
                         </Border>
+                    </Grid>
+                    <Grid Visibility="{Binding IsLotteryView, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="18" />
+                                        <ColumnDefinition Width="300" />
+                                    </Grid.ColumnDefinitions>
+                                    <Border Grid.Column="0" Style="{StaticResource PanelBorderStyle}" Padding="18">
+                                        <StackPanel>
+                                            <TextBlock Text="台灣彩券官方開獎結果比對" Foreground="{StaticResource StrongTextBrush}" FontSize="16" FontWeight="SemiBold" />
+                                            <TextBlock Text="依照官方 API 載入威力彩、大樂透、今彩539近三個月每期號碼，並逐期比對你提供的固定號碼組。" Margin="0,8,0,0" Style="{StaticResource InfoTextStyle}" />
+                                            <TextBlock Text="{Binding LotteryPeriodRangeDisplay}" Margin="0,8,0,0" Foreground="{StaticResource SuccessBrush}" FontSize="12" FontWeight="SemiBold" />
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Grid.Column="2" Style="{StaticResource PanelBorderStyle}" Padding="18">
+                                        <StackPanel>
+                                            <TextBlock Text="最後更新" Foreground="#8EAAD2" FontSize="12" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding LotteryLastFetchDisplay}" Margin="0,10,0,4" Foreground="{StaticResource StrongTextBrush}" FontSize="18" FontWeight="SemiBold" />
+                                            <TextBlock Text="資料來源：https://api.taiwanlottery.com/TLCAPIWeB" Foreground="{StaticResource SubtleBrush}" FontSize="12" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                                <Border Margin="0,18,0,0" Style="{StaticResource PanelBorderStyle}" Padding="1" Background="{StaticResource WindowSurfaceBrush}">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <Border Grid.Row="0" Background="#111E33" BorderBrush="#203150" BorderThickness="0,0,0,1" CornerRadius="23,23,0,0" Padding="18,14">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="威力彩" Foreground="{StaticResource StrongTextBrush}" FontSize="15" FontWeight="SemiBold" />
+                                                <TextBlock Grid.Column="1" Text="主號 6 碼 + 特別號" Foreground="#839CC0" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                            </Grid>
+                                        </Border>
+                                        <DataGrid Grid.Row="1" ItemsSource="{Binding SuperLottoRows}" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="Horizontal" HeadersVisibility="Column" RowBackground="#101C31" AlternatingRowBackground="#122038" Background="{StaticResource WindowSurfaceBrush}" Foreground="#E5EDF8" HorizontalGridLinesBrush="#1A2A45" VerticalGridLinesBrush="#1A2A45" BorderThickness="0" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False" RowHeight="42" ColumnHeaderHeight="42" CellStyle="{StaticResource DataGridCellStyle}" RowStyle="{StaticResource DataGridRowStyle}" ColumnHeaderStyle="{StaticResource DataGridHeaderStyle}" SelectionMode="Extended" SelectionUnit="FullRow" MaxHeight="260">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="期別" Binding="{Binding Period}" Width="118" />
+                                                <DataGridTextColumn Header="開獎日期" Binding="{Binding DrawDate}" Width="110" />
+                                                <DataGridTextColumn Header="本期號碼" Binding="{Binding WinningNumbers}" Width="220" />
+                                                <DataGridTextColumn Header="第一組" Binding="{Binding Pick1}" Width="160" />
+                                                <DataGridTextColumn Header="第二組" Binding="{Binding Pick2}" Width="160" />
+                                                <DataGridTextColumn Header="第三組" Binding="{Binding Pick3}" Width="160" />
+                                                <DataGridTextColumn Header="第四組" Binding="{Binding Pick4}" Width="160" />
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </Grid>
+                                </Border>
+                                <Border Margin="0,18,0,0" Style="{StaticResource PanelBorderStyle}" Padding="1" Background="{StaticResource WindowSurfaceBrush}">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <Border Grid.Row="0" Background="#111E33" BorderBrush="#203150" BorderThickness="0,0,0,1" CornerRadius="23,23,0,0" Padding="18,14">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="大樂透" Foreground="{StaticResource StrongTextBrush}" FontSize="15" FontWeight="SemiBold" />
+                                                <TextBlock Grid.Column="1" Text="主號 6 碼 + 特別號" Foreground="#839CC0" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                            </Grid>
+                                        </Border>
+                                        <DataGrid Grid.Row="1" ItemsSource="{Binding Lotto649Rows}" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="Horizontal" HeadersVisibility="Column" RowBackground="#101C31" AlternatingRowBackground="#122038" Background="{StaticResource WindowSurfaceBrush}" Foreground="#E5EDF8" HorizontalGridLinesBrush="#1A2A45" VerticalGridLinesBrush="#1A2A45" BorderThickness="0" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False" RowHeight="42" ColumnHeaderHeight="42" CellStyle="{StaticResource DataGridCellStyle}" RowStyle="{StaticResource DataGridRowStyle}" ColumnHeaderStyle="{StaticResource DataGridHeaderStyle}" SelectionMode="Extended" SelectionUnit="FullRow" MaxHeight="260">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="期別" Binding="{Binding Period}" Width="118" />
+                                                <DataGridTextColumn Header="開獎日期" Binding="{Binding DrawDate}" Width="110" />
+                                                <DataGridTextColumn Header="本期號碼" Binding="{Binding WinningNumbers}" Width="220" />
+                                                <DataGridTextColumn Header="第一組" Binding="{Binding Pick1}" Width="220" />
+                                                <DataGridTextColumn Header="第二組" Binding="{Binding Pick2}" Width="220" />
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </Grid>
+                                </Border>
+                                <Border Margin="0,18,0,0" Style="{StaticResource PanelBorderStyle}" Padding="1" Background="{StaticResource WindowSurfaceBrush}">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="*" />
+                                        </Grid.RowDefinitions>
+                                        <Border Grid.Row="0" Background="#111E33" BorderBrush="#203150" BorderThickness="0,0,0,1" CornerRadius="23,23,0,0" Padding="18,14">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="今彩539" Foreground="{StaticResource StrongTextBrush}" FontSize="15" FontWeight="SemiBold" />
+                                                <TextBlock Grid.Column="1" Text="主號 5 碼" Foreground="#839CC0" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                            </Grid>
+                                        </Border>
+                                        <DataGrid Grid.Row="1" ItemsSource="{Binding Daily539Rows}" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="Horizontal" HeadersVisibility="Column" RowBackground="#101C31" AlternatingRowBackground="#122038" Background="{StaticResource WindowSurfaceBrush}" Foreground="#E5EDF8" HorizontalGridLinesBrush="#1A2A45" VerticalGridLinesBrush="#1A2A45" BorderThickness="0" CanUserAddRows="False" CanUserDeleteRows="False" CanUserResizeRows="False" RowHeight="42" ColumnHeaderHeight="42" CellStyle="{StaticResource DataGridCellStyle}" RowStyle="{StaticResource DataGridRowStyle}" ColumnHeaderStyle="{StaticResource DataGridHeaderStyle}" SelectionMode="Extended" SelectionUnit="FullRow" MaxHeight="320">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="期別" Binding="{Binding Period}" Width="118" />
+                                                <DataGridTextColumn Header="開獎日期" Binding="{Binding DrawDate}" Width="110" />
+                                                <DataGridTextColumn Header="本期號碼" Binding="{Binding WinningNumbers}" Width="220" />
+                                                <DataGridTextColumn Header="第一組" Binding="{Binding Pick1}" Width="220" />
+                                                <DataGridTextColumn Header="第二組" Binding="{Binding Pick2}" Width="220" />
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
                     </Grid>
                 </Grid>
                 <TextBlock Grid.Row="6" HorizontalAlignment="Right" Foreground="#6C84A8" FontSize="11" FontWeight="SemiBold" Text="{Binding FooterText}" />

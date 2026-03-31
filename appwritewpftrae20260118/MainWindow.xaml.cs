@@ -1,4 +1,4 @@
-using Appwrite;
+﻿using Appwrite;
 using Appwrite.Services;
 using System;
 using System.Collections.Generic;
@@ -27,16 +27,38 @@ namespace appwritewpftrae20260118
     {
         private const string SubscriptionPage = "Subscriptions";
         private const string OilMonitorPage = "OilMonitor";
+        private const string LotteryPage = "Lottery";
+        private const string LotteryApiBaseUrl = "https://api.taiwanlottery.com/TLCAPIWeB";
 
         private readonly HttpClient _httpClient = new HttpClient();
         private readonly string _oilHistoryFilePath;
+        private readonly List<LotteryPick> _superLottoPicks = new List<LotteryPick>
+        {
+            LotteryPick.WithSpecial("第一組", new[] { 7, 11, 23, 32, 33, 38 }, 2),
+            LotteryPick.WithSpecial("第二組", new[] { 7, 11, 23, 32, 33, 38 }, 1),
+            LotteryPick.WithSpecial("第三組", new[] { 19, 8, 11, 27, 37, 16 }, 8),
+            LotteryPick.WithSpecial("第四組", new[] { 19, 8, 4, 3, 37, 16 }, 8)
+        };
+        private readonly List<LotteryPick> _lotto649Picks = new List<LotteryPick>
+        {
+            LotteryPick.WithoutSpecial("第一組", new[] { 19, 8, 11, 27, 37, 16 }),
+            LotteryPick.WithoutSpecial("第二組", new[] { 19, 8, 4, 3, 37, 16 })
+        };
+        private readonly List<LotteryPick> _daily539Picks = new List<LotteryPick>
+        {
+            LotteryPick.WithoutSpecial("第一組", new[] { 19, 8, 11, 27, 37 }),
+            LotteryPick.WithoutSpecial("第二組", new[] { 19, 8, 4, 3, 37 })
+        };
 
-        private string _statusMessage;
-        private string _oilStatusMessage;
+        private string _statusMessage = "準備載入訂閱資料";
+        private string _oilStatusMessage = "準備載入油價資料";
+        private string _lotteryStatusMessage = "準備載入彩券資料";
         private string _currentPage = SubscriptionPage;
         private string _oilCurrentPriceDisplay = "--";
-        private string _oilMarkerDateDisplay = "尚未取得資料";
+        private string _oilMarkerDateDisplay = "尚未抓取資料";
         private string _oilLastFetchDisplay = "尚未抓取";
+        private string _lotteryLastFetchDisplay = "尚未更新";
+        private string _lotteryPeriodRangeDisplay = string.Empty;
         private Visibility _oilChartEmptyVisibility = Visibility.Visible;
         private Forms.NotifyIcon _notifyIcon;
         private Timer _dailyTimer;
@@ -46,6 +68,9 @@ namespace appwritewpftrae20260118
         public ObservableCollection<Subscription> Subscriptions { get; } = new ObservableCollection<Subscription>();
         public ObservableCollection<OilPriceRecord> OilPriceHistory { get; } = new ObservableCollection<OilPriceRecord>();
         public ObservableCollection<OilPriceRecord> OilRecentRecords { get; } = new ObservableCollection<OilPriceRecord>();
+        public ObservableCollection<LotteryResultRow> SuperLottoRows { get; } = new ObservableCollection<LotteryResultRow>();
+        public ObservableCollection<LotteryResultRow> Lotto649Rows { get; } = new ObservableCollection<LotteryResultRow>();
+        public ObservableCollection<LotteryResultRow> Daily539Rows { get; } = new ObservableCollection<LotteryResultRow>();
 
         public event PropertyChangedEventHandler PropertyChanged;
 
@@ -88,18 +113,79 @@ namespace appwritewpftrae20260118
             }
         }
 
+        public string LotteryStatusMessage
+        {
+            get => _lotteryStatusMessage;
+            set
+            {
+                if (_lotteryStatusMessage == value) return;
+                _lotteryStatusMessage = value;
+                OnPropertyChanged(nameof(LotteryStatusMessage));
+                OnPropertyChanged(nameof(ActiveStatusMessage));
+            }
+        }
+
         public bool IsSubscriptionView => string.Equals(_currentPage, SubscriptionPage, StringComparison.Ordinal);
         public bool IsOilMonitorView => string.Equals(_currentPage, OilMonitorPage, StringComparison.Ordinal);
+        public bool IsLotteryView => string.Equals(_currentPage, LotteryPage, StringComparison.Ordinal);
 
-        public string CurrentPageTitle => IsSubscriptionView ? "訂閱總覽" : "原油監測";
-        public string CurrentPageSubtitle => IsSubscriptionView
-            ? "透過內部 Appwrite SUBSCRIPTION 資料表集中檢視所有訂閱資訊"
-            : "根據 Gulf Mercantile Exchange 的 OQD Daily Marker Price，每天下午 1 點自動抓取並累積成本機歷史圖表。";
-        public string CurrentActionLabel => IsSubscriptionView ? "重新整理訂閱" : "立即抓取油價";
-        public string ActiveStatusMessage => IsSubscriptionView ? StatusMessage : OilStatusMessage;
-        public string FooterText => IsSubscriptionView
-            ? "資料來源｜Appwrite Databases / SUBSCRIPTION"
-            : "資料來源｜Gulf Mercantile Exchange / OQD Daily Marker Price";
+        public string CurrentPageTitle
+        {
+            get
+            {
+                if (IsSubscriptionView) return "訂閱到期提醒";
+                if (IsOilMonitorView) return "油價追蹤";
+                return "最瞎結婚理由";
+            }
+        }
+
+        public string CurrentPageSubtitle
+        {
+            get
+            {
+                if (IsSubscriptionView)
+                {
+                    return "查看 Appwrite SUBSCRIPTION 集合中的資料、排序下次扣款日，並在到期前三天給出提醒。";
+                }
+
+                if (IsOilMonitorView)
+                {
+                    return "追蹤 Gulf Mercantile Exchange 的 OQD Daily Marker Price，保留歷史資料並用圖表快速檢視變化。";
+                }
+
+                return "根據台灣彩券官方 API 列出威力彩、大樂透、今彩539近三個月每期號碼，並比對你指定的號碼組。";
+            }
+        }
+
+        public string CurrentActionLabel
+        {
+            get
+            {
+                if (IsSubscriptionView) return "重新整理";
+                if (IsOilMonitorView) return "抓最新牌價";
+                return "更新彩券資料";
+            }
+        }
+
+        public string ActiveStatusMessage
+        {
+            get
+            {
+                if (IsSubscriptionView) return StatusMessage;
+                if (IsOilMonitorView) return OilStatusMessage;
+                return LotteryStatusMessage;
+            }
+        }
+
+        public string FooterText
+        {
+            get
+            {
+                if (IsSubscriptionView) return "資料來源：Appwrite Databases / SUBSCRIPTION";
+                if (IsOilMonitorView) return "資料來源：Gulf Mercantile Exchange / OQD Daily Marker Price";
+                return "資料來源：台灣彩券官方 API";
+            }
+        }
 
         public string OilCurrentPriceDisplay
         {
@@ -134,6 +220,28 @@ namespace appwritewpftrae20260118
             }
         }
 
+        public string LotteryLastFetchDisplay
+        {
+            get => _lotteryLastFetchDisplay;
+            set
+            {
+                if (_lotteryLastFetchDisplay == value) return;
+                _lotteryLastFetchDisplay = value;
+                OnPropertyChanged(nameof(LotteryLastFetchDisplay));
+            }
+        }
+
+        public string LotteryPeriodRangeDisplay
+        {
+            get => _lotteryPeriodRangeDisplay;
+            set
+            {
+                if (_lotteryPeriodRangeDisplay == value) return;
+                _lotteryPeriodRangeDisplay = value;
+                OnPropertyChanged(nameof(LotteryPeriodRangeDisplay));
+            }
+        }
+
         public Visibility OilChartEmptyVisibility
         {
             get => _oilChartEmptyVisibility;
@@ -150,6 +258,7 @@ namespace appwritewpftrae20260118
             LoadOilPriceHistoryFromDisk();
             await LoadSubscriptionsAsync();
             await RefreshOilDataAsync(forceFetch: false);
+            await LoadLotteryDataAsync();
             await CheckAndNotifyExpiringSubscriptions();
             _lastNotifyDate = DateTime.Today;
             ScheduleDailyTasks();
@@ -171,11 +280,16 @@ namespace appwritewpftrae20260118
             {
                 await LoadSubscriptionsAsync();
                 await CheckAndNotifyExpiringSubscriptions();
+                return;
             }
-            else
+
+            if (IsOilMonitorView)
             {
                 await RefreshOilDataAsync(forceFetch: true);
+                return;
             }
+
+            await LoadLotteryDataAsync();
         }
 
         private void SubscriptionsMenuButton_Click(object sender, RoutedEventArgs e)
@@ -191,17 +305,23 @@ namespace appwritewpftrae20260118
             RenderOilPriceChart();
         }
 
+        private void LotteryMenuButton_Click(object sender, RoutedEventArgs e)
+        {
+            _currentPage = LotteryPage;
+            UpdatePageState();
+        }
+
         private void UpdatePageState()
         {
             OnPropertyChanged(nameof(IsSubscriptionView));
             OnPropertyChanged(nameof(IsOilMonitorView));
+            OnPropertyChanged(nameof(IsLotteryView));
             OnPropertyChanged(nameof(CurrentPageTitle));
             OnPropertyChanged(nameof(CurrentPageSubtitle));
             OnPropertyChanged(nameof(CurrentActionLabel));
             OnPropertyChanged(nameof(ActiveStatusMessage));
             OnPropertyChanged(nameof(FooterText));
         }
-
         private async Task LoadSubscriptionsAsync()
         {
             try
@@ -211,7 +331,7 @@ namespace appwritewpftrae20260118
                 var config = ReadConfig();
                 if (!config.IsValid)
                 {
-                    StatusMessage = "Appwrite 設定不完整，請檢查 App.config。";
+                    StatusMessage = "Appwrite 設定不完整，請先檢查 App.config。";
                     return;
                 }
 
@@ -219,8 +339,7 @@ namespace appwritewpftrae20260118
                 var documents = await databases.ListDocuments(
                     databaseId: config.DatabaseId,
                     collectionId: config.SubscriptionCollectionId,
-                    queries: new List<string> { Query.Limit(100) }
-                );
+                    queries: new List<string> { Query.Limit(100) });
 
                 var list = new List<Subscription>();
                 foreach (var document in documents.Documents)
@@ -251,9 +370,9 @@ namespace appwritewpftrae20260118
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     Subscriptions.Clear();
-                    foreach (var sub in list)
+                    foreach (var item in list)
                     {
-                        Subscriptions.Add(sub);
+                        Subscriptions.Add(item);
                     }
                 });
 
@@ -261,7 +380,7 @@ namespace appwritewpftrae20260118
             }
             catch (AppwriteException ex)
             {
-                StatusMessage = $"載入失敗：{ex.Message}";
+                StatusMessage = $"載入訂閱資料失敗：{ex.Message}";
             }
             catch (Exception ex)
             {
@@ -273,12 +392,15 @@ namespace appwritewpftrae20260118
         {
             try
             {
-                OilStatusMessage = forceFetch ? "正在抓取 OQD Marker..." : "正在同步原油資料...";
+                OilStatusMessage = forceFetch ? "正在抓取最新 OQD Marker..." : "正在整理本機油價資料...";
 
-                if (!forceFetch && OilPriceHistory.Count > 0 && DateTime.Now.Hour < ReadOilFetchHour() && OilPriceHistory.Any(x => x.MarkerDate.Date == DateTime.Today))
+                if (!forceFetch &&
+                    OilPriceHistory.Count > 0 &&
+                    DateTime.Now.Hour < ReadOilFetchHour() &&
+                    OilPriceHistory.Any(x => x.MarkerDate.Date == DateTime.Today))
                 {
                     UpdateOilSummary();
-                    OilStatusMessage = "使用今日已保存的原油資料。";
+                    OilStatusMessage = "今天的油價資料已存在，暫時沿用本機紀錄。";
                     return;
                 }
 
@@ -286,13 +408,13 @@ namespace appwritewpftrae20260118
                 UpsertOilRecord(latestRecord);
                 SaveOilPriceHistoryToDisk();
                 UpdateOilSummary();
-                OilStatusMessage = $"已更新 OQD Marker：{latestRecord.Price.ToString("0.00", CultureInfo.InvariantCulture)}";
+                OilStatusMessage = $"已更新 OQD Marker：{latestRecord.Price:0.00}";
                 _lastOilFetchDate = DateTime.Today;
             }
             catch (Exception ex)
             {
                 UpdateOilSummary();
-                OilStatusMessage = $"原油抓取失敗：{ex.Message}";
+                OilStatusMessage = $"油價資料抓取失敗：{ex.Message}";
             }
         }
 
@@ -301,7 +423,6 @@ namespace appwritewpftrae20260118
             var url = ReadOilSourceUrl();
             var html = await _httpClient.GetStringAsync(url);
             var plainText = HtmlToPlainText(html);
-
             var lines = plainText
                 .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(line => line.Trim())
@@ -348,14 +469,7 @@ namespace appwritewpftrae20260118
 
         private static DateTime? ExtractDate(IReadOnlyList<string> lines, int startIndex)
         {
-            var formats = new[]
-            {
-                "dd MMM-yyyy",
-                "dd MMM, yyyy",
-                "d MMM-yyyy",
-                "d MMM, yyyy"
-            };
-
+            var formats = new[] { "dd MMM-yyyy", "dd MMM, yyyy", "d MMM-yyyy", "d MMM, yyyy" };
             for (var i = startIndex; i < Math.Min(lines.Count, startIndex + 10); i++)
             {
                 foreach (var format in formats)
@@ -449,15 +563,9 @@ namespace appwritewpftrae20260118
         private void UpdateOilSummary()
         {
             var latest = OilPriceHistory.OrderByDescending(r => r.MarkerDate).FirstOrDefault();
-            OilCurrentPriceDisplay = latest == null
-                ? "--"
-                : latest.Price.ToString("0.00", CultureInfo.InvariantCulture);
-            OilMarkerDateDisplay = latest == null
-                ? "尚未取得資料"
-                : $"Marker 日期 {latest.MarkerDate:yyyy-MM-dd}";
-            OilLastFetchDisplay = latest == null
-                ? "尚未抓取"
-                : latest.CapturedAt.ToString("yyyy-MM-dd HH:mm");
+            OilCurrentPriceDisplay = latest == null ? "--" : latest.Price.ToString("0.00", CultureInfo.InvariantCulture);
+            OilMarkerDateDisplay = latest == null ? "尚未抓取資料" : $"Marker 日期 {latest.MarkerDate:yyyy-MM-dd}";
+            OilLastFetchDisplay = latest == null ? "尚未抓取" : latest.CapturedAt.ToString("yyyy-MM-dd HH:mm");
 
             OilRecentRecords.Clear();
             foreach (var record in OilPriceHistory.OrderByDescending(r => r.MarkerDate).Take(12))
@@ -467,6 +575,135 @@ namespace appwritewpftrae20260118
 
             OilChartEmptyVisibility = OilPriceHistory.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
             RenderOilPriceChart();
+        }
+        private async Task LoadLotteryDataAsync()
+        {
+            try
+            {
+                LotteryStatusMessage = "正在載入台灣彩券官方資料...";
+
+                var startMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1).AddMonths(-2);
+                var endMonth = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+                LotteryPeriodRangeDisplay = $"查詢區間：{startMonth:yyyy-MM} 到 {endMonth:yyyy-MM}";
+
+                var superTask = FetchLotteryDrawsAsync("/Lottery/SuperLotto638Result", "superLotto638Res", startMonth, endMonth, 6, true);
+                var lottoTask = FetchLotteryDrawsAsync("/Lottery/Lotto649Result", "lotto649Res", startMonth, endMonth, 6, true);
+                var dailyTask = FetchLotteryDrawsAsync("/Lottery/Daily539Result", "daily539Res", startMonth, endMonth, 5, false);
+
+                await Task.WhenAll(superTask, lottoTask, dailyTask);
+
+                FillLotteryRows(SuperLottoRows, superTask.Result, _superLottoPicks);
+                FillLotteryRows(Lotto649Rows, lottoTask.Result, _lotto649Picks);
+                FillLotteryRows(Daily539Rows, dailyTask.Result, _daily539Picks);
+
+                LotteryLastFetchDisplay = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
+                LotteryStatusMessage = $"威力彩 {SuperLottoRows.Count} 期、大樂透 {Lotto649Rows.Count} 期、今彩539 {Daily539Rows.Count} 期已更新。";
+            }
+            catch (Exception ex)
+            {
+                LotteryStatusMessage = $"彩券資料更新失敗：{ex.Message}";
+            }
+        }
+
+        private async Task<List<LotteryDrawResult>> FetchLotteryDrawsAsync(
+            string apiPath,
+            string resultProperty,
+            DateTime startMonth,
+            DateTime endMonth,
+            int mainNumberCount,
+            bool hasSpecialNumber)
+        {
+            var url = string.Format(
+                CultureInfo.InvariantCulture,
+                "{0}{1}?period=&month={2:yyyy-MM}&endMonth={3:yyyy-MM}&pageNum=1&pageSize=200",
+                LotteryApiBaseUrl,
+                apiPath,
+                startMonth,
+                endMonth);
+
+            using (var stream = await _httpClient.GetStreamAsync(url))
+            using (var document = await JsonDocument.ParseAsync(stream))
+            {
+                var list = new List<LotteryDrawResult>();
+                var root = document.RootElement;
+                var content = root.GetProperty("content");
+                var results = content.GetProperty(resultProperty);
+
+                foreach (var item in results.EnumerateArray())
+                {
+                    var sortedNumbers = ReadIntArray(item, "drawNumberSize");
+                    var appearNumbers = ReadIntArray(item, "drawNumberAppear");
+                    var mainNumbers = sortedNumbers.Take(mainNumberCount).ToList();
+                    var specialNumber = hasSpecialNumber && sortedNumbers.Count > mainNumberCount
+                        ? (int?)sortedNumbers[mainNumberCount]
+                        : null;
+
+                    list.Add(new LotteryDrawResult
+                    {
+                        Period = item.GetProperty("period").GetRawText().Trim('"'),
+                        LotteryDate = item.GetProperty("lotteryDate").GetDateTime(),
+                        MainNumbers = mainNumbers,
+                        DisplayNumbers = appearNumbers.Take(mainNumberCount).ToList(),
+                        SpecialNumber = specialNumber,
+                        HasSpecialNumber = hasSpecialNumber
+                    });
+                }
+
+                return list.OrderByDescending(x => x.LotteryDate).ToList();
+            }
+        }
+
+        private static List<int> ReadIntArray(JsonElement element, string propertyName)
+        {
+            var list = new List<int>();
+            foreach (var item in element.GetProperty(propertyName).EnumerateArray())
+            {
+                list.Add(item.GetInt32());
+            }
+
+            return list;
+        }
+
+        private static void FillLotteryRows(
+            ObservableCollection<LotteryResultRow> target,
+            IEnumerable<LotteryDrawResult> draws,
+            IReadOnlyList<LotteryPick> picks)
+        {
+            target.Clear();
+            foreach (var draw in draws)
+            {
+                var comparisons = picks
+                    .Select(pick => ComparePick(draw, pick))
+                    .ToDictionary(result => result.PickLabel, result => result.ResultText);
+
+                target.Add(new LotteryResultRow
+                {
+                    Period = draw.Period,
+                    DrawDate = draw.LotteryDate.ToString("yyyy-MM-dd"),
+                    WinningNumbers = draw.DisplayText,
+                    Pick1 = comparisons.ContainsKey("第一組") ? comparisons["第一組"] : string.Empty,
+                    Pick2 = comparisons.ContainsKey("第二組") ? comparisons["第二組"] : string.Empty,
+                    Pick3 = comparisons.ContainsKey("第三組") ? comparisons["第三組"] : string.Empty,
+                    Pick4 = comparisons.ContainsKey("第四組") ? comparisons["第四組"] : string.Empty
+                });
+            }
+        }
+
+        private static LotteryPickComparisonResult ComparePick(LotteryDrawResult draw, LotteryPick pick)
+        {
+            var matchCount = pick.MainNumbers.Count(number => draw.MainNumbers.Contains(number));
+            var specialMatched = pick.SpecialNumber.HasValue && draw.SpecialNumber == pick.SpecialNumber.Value;
+            var text = pick.SpecialNumber.HasValue
+                ? $"主號中 {matchCount} 碼 / 特別號{(specialMatched ? "有中" : "未中")}"
+                : $"主號中 {matchCount} 碼";
+
+            return new LotteryPickComparisonResult
+            {
+                PickLabel = pick.Label,
+                MainMatchCount = matchCount,
+                SpecialMatched = specialMatched,
+                ResultText = text
+            };
         }
 
         private void RenderOilPriceChart()
@@ -484,7 +721,6 @@ namespace appwritewpftrae20260118
             }
 
             OilChartEmptyVisibility = Visibility.Collapsed;
-
             var width = OilChartCanvas.ActualWidth;
             var height = OilChartCanvas.ActualHeight;
             const double leftPadding = 48;
@@ -494,7 +730,6 @@ namespace appwritewpftrae20260118
 
             var plotWidth = width - leftPadding - rightPadding;
             var plotHeight = height - topPadding - bottomPadding;
-
             var ordered = OilPriceHistory.OrderBy(r => r.MarkerDate).ToList();
             var minPrice = ordered.Min(r => r.Price);
             var maxPrice = ordered.Max(r => r.Price);
@@ -513,14 +748,14 @@ namespace appwritewpftrae20260118
                     X2 = width - rightPadding,
                     Y1 = y,
                     Y2 = y,
-                    Stroke = new SolidColorBrush(System.Windows.Media.Color.FromRgb(31, 46, 72)),
+                    Stroke = new SolidColorBrush(Color.FromRgb(31, 46, 72)),
                     StrokeThickness = 1
                 });
             }
 
             var polyline = new Polyline
             {
-                Stroke = new SolidColorBrush(System.Windows.Media.Color.FromRgb(158, 193, 255)),
+                Stroke = new SolidColorBrush(Color.FromRgb(158, 193, 255)),
                 StrokeThickness = 3
             };
 
@@ -531,21 +766,20 @@ namespace appwritewpftrae20260118
                     : leftPadding + (plotWidth * index / (ordered.Count - 1));
                 var normalized = (double)((ordered[index].Price - minPrice) / (maxPrice - minPrice));
                 var y = topPadding + plotHeight - (plotHeight * normalized);
-                polyline.Points.Add(new System.Windows.Point(x, y));
+                polyline.Points.Add(new Point(x, y));
 
                 OilChartCanvas.Children.Add(new Ellipse
                 {
                     Width = 8,
                     Height = 8,
-                    Fill = new SolidColorBrush(System.Windows.Media.Color.FromRgb(158, 193, 255)),
-                    Stroke = new SolidColorBrush(System.Windows.Media.Color.FromRgb(12, 22, 40)),
+                    Fill = new SolidColorBrush(Color.FromRgb(158, 193, 255)),
+                    Stroke = new SolidColorBrush(Color.FromRgb(12, 22, 40)),
                     StrokeThickness = 2,
                     Margin = new Thickness(x - 4, y - 4, 0, 0)
                 });
             }
 
             OilChartCanvas.Children.Add(polyline);
-
             AddChartLabel($"{maxPrice:0.00}", 6, topPadding - 8, HorizontalAlignment.Left);
             AddChartLabel($"{minPrice:0.00}", 6, topPadding + plotHeight - 8, HorizontalAlignment.Left);
             AddChartLabel(ordered.First().MarkerDate.ToString("MM-dd"), leftPadding, height - bottomPadding + 8, HorizontalAlignment.Left);
@@ -557,7 +791,7 @@ namespace appwritewpftrae20260118
             OilChartCanvas.Children.Add(new TextBlock
             {
                 Text = text,
-                Foreground = new SolidColorBrush(System.Windows.Media.Color.FromRgb(142, 161, 189)),
+                Foreground = new SolidColorBrush(Color.FromRgb(142, 161, 189)),
                 FontSize = 11,
                 Width = 60,
                 TextAlignment = alignment == HorizontalAlignment.Left ? TextAlignment.Left : TextAlignment.Right,
@@ -569,14 +803,13 @@ namespace appwritewpftrae20260118
         {
             RenderOilPriceChart();
         }
-
         private void InitializeNotificationIcon()
         {
             _notifyIcon = new Forms.NotifyIcon
             {
                 Visible = true,
                 Icon = Drawing.SystemIcons.Information,
-                Text = "訂閱與原油監測"
+                Text = "訂閱到期提醒"
             };
 
             _notifyIcon.MouseClick += (s, e) =>
@@ -590,7 +823,7 @@ namespace appwritewpftrae20260118
             _notifyIcon.DoubleClick += (s, e) => RestoreWindow();
 
             var contextMenu = new Forms.ContextMenu();
-            contextMenu.MenuItems.Add("顯示", (s, e) => RestoreWindow());
+            contextMenu.MenuItems.Add("顯示視窗", (s, e) => RestoreWindow());
             contextMenu.MenuItems.Add("結束", (s, e) =>
             {
                 _notifyIcon.Visible = false;
@@ -656,12 +889,10 @@ namespace appwritewpftrae20260118
                 var databases = new Databases(BuildClient(config));
                 var today = DateTime.Today;
                 var threeDaysLater = today.AddDays(3);
-
                 var allDocuments = await databases.ListDocuments(
                     databaseId: config.DatabaseId,
                     collectionId: config.SubscriptionCollectionId,
-                    queries: new List<string> { Query.Limit(100) }
-                );
+                    queries: new List<string> { Query.Limit(100) });
 
                 var expiring = new List<Subscription>();
                 foreach (var document in allDocuments.Documents)
@@ -692,9 +923,9 @@ namespace appwritewpftrae20260118
                 var messages = expiring.Select(sub =>
                 {
                     var daysLeft = (sub.NextDate.Value.Date - today).Days;
-                    var daysText = daysLeft == 0 ? "今天到期" : daysLeft == 1 ? "明天到期" : $"{daysLeft} 天後到期";
-                    var accountPart = string.IsNullOrWhiteSpace(sub.Account) ? string.Empty : $"帳號 {sub.Account} 的 ";
-                    return $"{accountPart}{sub.Name} {daysText}，日期 {sub.NextDate.Value:yyyy-MM-dd}。";
+                    var daysText = daysLeft == 0 ? "今天到期" : daysLeft == 1 ? "明天到期" : $"還有 {daysLeft} 天到期";
+                    var accountPart = string.IsNullOrWhiteSpace(sub.Account) ? string.Empty : $"帳號 {sub.Account} - ";
+                    return $"{accountPart}{sub.Name}，{daysText}，日期 {sub.NextDate.Value:yyyy-MM-dd}";
                 }).ToList();
 
                 Application.Current.Dispatcher.Invoke(() =>
@@ -732,10 +963,7 @@ namespace appwritewpftrae20260118
 
         private static Client BuildClient(AppwriteConfig config)
         {
-            var client = new Client()
-                .SetEndpoint(config.Endpoint)
-                .SetProject(config.ProjectId);
-
+            var client = new Client().SetEndpoint(config.Endpoint).SetProject(config.ProjectId);
             if (!string.IsNullOrWhiteSpace(config.ApiKey))
             {
                 client.SetKey(config.ApiKey);
@@ -747,9 +975,7 @@ namespace appwritewpftrae20260118
         private string ReadOilSourceUrl()
         {
             var config = ReadConfig();
-            return string.IsNullOrWhiteSpace(config.OilMarkerUrl)
-                ? "https://www.gulfmerc.com/"
-                : config.OilMarkerUrl;
+            return string.IsNullOrWhiteSpace(config.OilMarkerUrl) ? "https://www.gulfmerc.com/" : config.OilMarkerUrl;
         }
 
         private int ReadOilFetchHour()
@@ -832,5 +1058,70 @@ namespace appwritewpftrae20260118
         public string MarkerDateDisplay => MarkerDate.ToString("yyyy-MM-dd");
         public string CapturedAtDisplay => $"抓取時間 {CapturedAt:yyyy-MM-dd HH:mm}";
         public string PriceDisplay => Price.ToString("0.00", CultureInfo.InvariantCulture);
+    }
+    public class LotteryResultRow
+    {
+        public string Period { get; set; }
+        public string DrawDate { get; set; }
+        public string WinningNumbers { get; set; }
+        public string Pick1 { get; set; }
+        public string Pick2 { get; set; }
+        public string Pick3 { get; set; }
+        public string Pick4 { get; set; }
+    }
+
+    internal class LotteryDrawResult
+    {
+        public string Period { get; set; }
+        public DateTime LotteryDate { get; set; }
+        public List<int> MainNumbers { get; set; } = new List<int>();
+        public List<int> DisplayNumbers { get; set; } = new List<int>();
+        public int? SpecialNumber { get; set; }
+        public bool HasSpecialNumber { get; set; }
+
+        public string DisplayText
+        {
+            get
+            {
+                var main = string.Join(" ", DisplayNumbers.Select(number => number.ToString("00")));
+                return HasSpecialNumber && SpecialNumber.HasValue
+                    ? $"{main} | 特別號 {SpecialNumber.Value:00}"
+                    : main;
+            }
+        }
+    }
+
+    internal class LotteryPick
+    {
+        public string Label { get; set; }
+        public List<int> MainNumbers { get; set; } = new List<int>();
+        public int? SpecialNumber { get; set; }
+
+        public static LotteryPick WithSpecial(string label, IEnumerable<int> mainNumbers, int specialNumber)
+        {
+            return new LotteryPick
+            {
+                Label = label,
+                MainNumbers = mainNumbers.OrderBy(number => number).ToList(),
+                SpecialNumber = specialNumber
+            };
+        }
+
+        public static LotteryPick WithoutSpecial(string label, IEnumerable<int> mainNumbers)
+        {
+            return new LotteryPick
+            {
+                Label = label,
+                MainNumbers = mainNumbers.OrderBy(number => number).ToList()
+            };
+        }
+    }
+
+    internal class LotteryPickComparisonResult
+    {
+        public string PickLabel { get; set; }
+        public int MainMatchCount { get; set; }
+        public bool SpecialMatched { get; set; }
+        public string ResultText { get; set; }
     }
 }
