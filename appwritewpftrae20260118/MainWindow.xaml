@@ -25,6 +25,10 @@
         <SolidColorBrush x:Key="WarmBorderBrush" Color="#7E6336" />
         <SolidColorBrush x:Key="WarmTextBrush" Color="#F6DDA0" />
         <SolidColorBrush x:Key="SuccessBrush" Color="#84E0C2" />
+        <SolidColorBrush x:Key="CelebrationPanelBrush" Color="#2A1726" />
+        <SolidColorBrush x:Key="CelebrationBorderBrush" Color="#CC8E59" />
+        <SolidColorBrush x:Key="CelebrationTextBrush" Color="#FFE9C9" />
+        <SolidColorBrush x:Key="CelebrationAccentBrush" Color="#FFD36E" />
         <LinearGradientBrush x:Key="WindowBackgroundBrush" StartPoint="0,0" EndPoint="1,1">
             <GradientStop Color="#07101C" Offset="0" />
             <GradientStop Color="#0A1525" Offset="0.42" />
@@ -159,6 +163,8 @@
             <Grid Margin="28">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="14" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="18" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="18" />
@@ -204,7 +210,99 @@
                         </StackPanel>
                     </Border>
                 </Grid>
-                <Border Grid.Row="2" Style="{StaticResource PanelBorderStyle}" Padding="18" Background="#0F1B2F">
+                <Border Grid.Row="2"
+                        Visibility="{Binding IsBirthdayEasterEggVisible, Converter={StaticResource BoolToVisibilityConverter}}"
+                        CornerRadius="24"
+                        Padding="1"
+                        BorderBrush="{StaticResource CelebrationBorderBrush}"
+                        BorderThickness="1"
+                        Background="#1A1220">
+                    <Grid>
+                        <Border CornerRadius="23" Padding="20" Background="{StaticResource CelebrationPanelBrush}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="260" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel VerticalAlignment="Center">
+                                    <Border Background="#503024" BorderBrush="#F1B967" BorderThickness="1" CornerRadius="999" Padding="10,4" HorizontalAlignment="Left">
+                                        <TextBlock Text="{Binding EasterEggBadge}" Foreground="{StaticResource CelebrationAccentBrush}" FontSize="11" FontWeight="SemiBold" />
+                                    </Border>
+                                    <TextBlock Text="{Binding EasterEggTitle}" Margin="0,14,0,0" Foreground="{StaticResource CelebrationTextBrush}" FontSize="30" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding EasterEggSubtitle}" Margin="0,8,0,0" Foreground="#FFE4B0" FontSize="15" TextWrapping="Wrap" />
+                                </StackPanel>
+                                <Grid Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                                    <Canvas IsHitTestVisible="False" Margin="12,0,0,0">
+                                        <Ellipse Width="68" Height="68" Fill="#1EFFFFFF" Canvas.Left="18" Canvas.Top="14">
+                                            <Ellipse.RenderTransform>
+                                                <TranslateTransform />
+                                            </Ellipse.RenderTransform>
+                                            <Ellipse.Triggers>
+                                                <EventTrigger RoutedEvent="Loaded">
+                                                    <BeginStoryboard>
+                                                        <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(TranslateTransform.Y)" From="0" To="10" Duration="0:0:2.3" />
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </EventTrigger>
+                                            </Ellipse.Triggers>
+                                        </Ellipse>
+                                        <Ellipse Width="22" Height="22" Fill="#8CFFD36E" Canvas.Left="122" Canvas.Top="18">
+                                            <Ellipse.RenderTransform>
+                                                <TranslateTransform />
+                                            </Ellipse.RenderTransform>
+                                            <Ellipse.Triggers>
+                                                <EventTrigger RoutedEvent="Loaded">
+                                                    <BeginStoryboard>
+                                                        <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(TranslateTransform.Y)" From="0" To="18" Duration="0:0:1.5" />
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </EventTrigger>
+                                            </Ellipse.Triggers>
+                                        </Ellipse>
+                                        <Ellipse Width="18" Height="18" Fill="#A2FF95A8" Canvas.Left="184" Canvas.Top="52">
+                                            <Ellipse.RenderTransform>
+                                                <TranslateTransform />
+                                            </Ellipse.RenderTransform>
+                                            <Ellipse.Triggers>
+                                                <EventTrigger RoutedEvent="Loaded">
+                                                    <BeginStoryboard>
+                                                        <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(TranslateTransform.Y)" From="0" To="-14" Duration="0:0:1.8" />
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </EventTrigger>
+                                            </Ellipse.Triggers>
+                                        </Ellipse>
+                                        <Ellipse Width="34" Height="34" Fill="#80A7E7FF" Canvas.Left="94" Canvas.Top="74">
+                                            <Ellipse.RenderTransform>
+                                                <TranslateTransform />
+                                            </Ellipse.RenderTransform>
+                                            <Ellipse.Triggers>
+                                                <EventTrigger RoutedEvent="Loaded">
+                                                    <BeginStoryboard>
+                                                        <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                            <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(TranslateTransform.X)" From="0" To="10" Duration="0:0:2.1" />
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </EventTrigger>
+                                            </Ellipse.Triggers>
+                                        </Ellipse>
+                                    </Canvas>
+                                    <TextBlock Text="HIDDEN CELEBRATION MODE"
+                                               HorizontalAlignment="Right"
+                                               VerticalAlignment="Bottom"
+                                               Margin="0,0,12,6"
+                                               Foreground="#B89B78"
+                                               FontSize="11"
+                                               FontWeight="SemiBold" />
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </Border>
+                <Border Grid.Row="4" Style="{StaticResource PanelBorderStyle}" Padding="18" Background="#0F1B2F">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -220,7 +318,7 @@
                         </Border>
                     </Grid>
                 </Border>
-                <Grid Grid.Row="4">
+                <Grid Grid.Row="6">
                     <Grid Visibility="{Binding IsSubscriptionView, Converter={StaticResource BoolToVisibilityConverter}}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -487,7 +585,7 @@
                         </ScrollViewer>
                     </Grid>
                 </Grid>
-                <TextBlock Grid.Row="6" HorizontalAlignment="Right" Foreground="#6C84A8" FontSize="11" FontWeight="SemiBold" Text="{Binding FooterText}" />
+                <TextBlock Grid.Row="8" HorizontalAlignment="Right" Foreground="#6C84A8" FontSize="11" FontWeight="SemiBold" Text="{Binding FooterText}" />
             </Grid>
         </Border>
     </Grid>

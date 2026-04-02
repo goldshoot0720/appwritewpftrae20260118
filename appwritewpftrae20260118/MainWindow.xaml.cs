@@ -59,6 +59,10 @@ namespace appwritewpftrae20260118
         private string _oilLastFetchDisplay = "尚未抓取";
         private string _lotteryLastFetchDisplay = "尚未更新";
         private string _lotteryPeriodRangeDisplay = string.Empty;
+        private bool _isBirthdayEasterEggVisible;
+        private string _easterEggBadge = string.Empty;
+        private string _easterEggTitle = string.Empty;
+        private string _easterEggSubtitle = string.Empty;
         private Visibility _oilChartEmptyVisibility = Visibility.Visible;
         private Forms.NotifyIcon _notifyIcon;
         private Timer _dailyTimer;
@@ -86,6 +90,7 @@ namespace appwritewpftrae20260118
             InitializeNotificationIcon();
             _httpClient.Timeout = TimeSpan.FromSeconds(20);
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("AppwriteSubscriptionViewer/1.0");
+            UpdateBirthdayEasterEgg();
             UpdatePageState();
         }
 
@@ -253,6 +258,50 @@ namespace appwritewpftrae20260118
             }
         }
 
+        public bool IsBirthdayEasterEggVisible
+        {
+            get => _isBirthdayEasterEggVisible;
+            set
+            {
+                if (_isBirthdayEasterEggVisible == value) return;
+                _isBirthdayEasterEggVisible = value;
+                OnPropertyChanged(nameof(IsBirthdayEasterEggVisible));
+            }
+        }
+
+        public string EasterEggBadge
+        {
+            get => _easterEggBadge;
+            set
+            {
+                if (_easterEggBadge == value) return;
+                _easterEggBadge = value;
+                OnPropertyChanged(nameof(EasterEggBadge));
+            }
+        }
+
+        public string EasterEggTitle
+        {
+            get => _easterEggTitle;
+            set
+            {
+                if (_easterEggTitle == value) return;
+                _easterEggTitle = value;
+                OnPropertyChanged(nameof(EasterEggTitle));
+            }
+        }
+
+        public string EasterEggSubtitle
+        {
+            get => _easterEggSubtitle;
+            set
+            {
+                if (_easterEggSubtitle == value) return;
+                _easterEggSubtitle = value;
+                OnPropertyChanged(nameof(EasterEggSubtitle));
+            }
+        }
+
         public async Task InitializeLogicAsync()
         {
             LoadOilPriceHistoryFromDisk();
@@ -272,6 +321,33 @@ namespace appwritewpftrae20260118
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             await InitializeLogicAsync();
+        }
+
+        private void UpdateBirthdayEasterEgg()
+        {
+            var today = DateTime.Today;
+            if (today.Month == 4 && today.Day == 3)
+            {
+                EasterEggBadge = "APRIL 03 SPECIAL";
+                EasterEggTitle = "塗哥生日快樂特效";
+                EasterEggSubtitle = "今彩539頭獎得主鋒兄";
+                IsBirthdayEasterEggVisible = true;
+                return;
+            }
+
+            if (today.Month == 11 && today.Day == 27)
+            {
+                EasterEggBadge = "NOVEMBER 27 SPECIAL";
+                EasterEggTitle = "鋒兄生日快樂特效";
+                EasterEggSubtitle = "高考三級資訊處理榜首鋒兄";
+                IsBirthdayEasterEggVisible = true;
+                return;
+            }
+
+            EasterEggBadge = string.Empty;
+            EasterEggTitle = string.Empty;
+            EasterEggSubtitle = string.Empty;
+            IsBirthdayEasterEggVisible = false;
         }
 
         private async void RefreshButton_Click(object sender, RoutedEventArgs e)
