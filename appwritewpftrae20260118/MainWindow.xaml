@@ -189,6 +189,26 @@
                                 </Border>
                                 <TextBlock Text="{Binding CurrentPageTitle}" Margin="0,16,0,0" FontSize="34" FontWeight="SemiBold" Foreground="{StaticResource StrongTextBrush}" />
                                 <TextBlock Text="{Binding CurrentPageSubtitle}" Margin="0,10,0,0" Style="{StaticResource InfoTextStyle}" FontSize="14" MaxWidth="760" />
+                                <TextBlock Margin="0,14,0,0"
+                                           Foreground="#9DB4D8"
+                                           FontSize="12"
+                                           FontFamily="Consolas"
+                                           TextWrapping="Wrap"
+                                           Visibility="{Binding IsSubscriptionView, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <Run Text="  ______                _    _   _    _     " />
+                                    <LineBreak />
+                                    <Run Text=" |  ____|              | |  | | | |  | |    " />
+                                    <LineBreak />
+                                    <Run Text=" | |__   _ __ ___  ___ | |__| | | |__| |___ " />
+                                    <LineBreak />
+                                    <Run Text=" |  __| | '__/ _ \\/ _ \\|  __  | |  __  / __|" />
+                                    <LineBreak />
+                                    <Run Text=" | |    | | |  __/ (_) | |  | | | |  | \\__ \\" />
+                                    <LineBreak />
+                                    <Run Text=" |_|    |_|  \\___|\\___/|_|  |_| |_|  |_|___/" />
+                                    <LineBreak />
+                                    <Run Text="                 feng bro                   " />
+                                </TextBlock>
                             </StackPanel>
                             <Border Grid.Column="1" CornerRadius="22" Background="#14253E" BorderBrush="#29456B" BorderThickness="1" Padding="18">
                                 <Grid>
