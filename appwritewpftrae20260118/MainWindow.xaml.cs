@@ -18,6 +18,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 using Drawing = System.Drawing;
 using Forms = System.Windows.Forms;
 
@@ -68,6 +69,12 @@ namespace appwritewpftrae20260118
         private Timer _dailyTimer;
         private DateTime _lastNotifyDate = DateTime.MinValue;
         private DateTime _lastOilFetchDate = DateTime.MinValue;
+        private string _sleepReminderMessage = string.Empty;
+        private Visibility _sleepReminderVisibility = Visibility.Collapsed;
+        private DateTime _sleepReminderDate = DateTime.MinValue;
+        private DateTime _lastSleepReminderScheduled = DateTime.MinValue;
+        private int _sleepReminderCount;
+        private DispatcherTimer _sleepReminderTimer;
 
         public ObservableCollection<Subscription> Subscriptions { get; } = new ObservableCollection<Subscription>();
         public ObservableCollection<OilPriceRecord> OilPriceHistory { get; } = new ObservableCollection<OilPriceRecord>();
@@ -91,6 +98,7 @@ namespace appwritewpftrae20260118
             _httpClient.Timeout = TimeSpan.FromSeconds(20);
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("AppwriteSubscriptionViewer/1.0");
             UpdateBirthdayEasterEgg();
+            InitializeSleepReminderTimer();
             UpdatePageState();
         }
 
@@ -258,6 +266,28 @@ namespace appwritewpftrae20260118
             }
         }
 
+        public string SleepReminderMessage
+        {
+            get => _sleepReminderMessage;
+            set
+            {
+                if (_sleepReminderMessage == value) return;
+                _sleepReminderMessage = value;
+                OnPropertyChanged(nameof(SleepReminderMessage));
+            }
+        }
+
+        public Visibility SleepReminderVisibility
+        {
+            get => _sleepReminderVisibility;
+            set
+            {
+                if (_sleepReminderVisibility == value) return;
+                _sleepReminderVisibility = value;
+                OnPropertyChanged(nameof(SleepReminderVisibility));
+            }
+        }
+
         public bool IsBirthdayEasterEggVisible
         {
             get => _isBirthdayEasterEggVisible;
@@ -321,6 +351,77 @@ namespace appwritewpftrae20260118
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             await InitializeLogicAsync();
+        }
+
+        private void InitializeSleepReminderTimer()
+        {
+            _sleepReminderTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMinutes(1)
+            };
+            _sleepReminderTimer.Tick += (_, __) => CheckAndUpdateSleepReminder(DateTime.Now);
+            _sleepReminderTimer.Start();
+            CheckAndUpdateSleepReminder(DateTime.Now);
+        }
+
+        private void CheckAndUpdateSleepReminder(DateTime now)
+        {
+            if (_sleepReminderDate.Date != now.Date)
+            {
+                _sleepReminderDate = now.Date;
+                _sleepReminderCount = 0;
+                _lastSleepReminderScheduled = DateTime.MinValue;
+                SleepReminderMessage = string.Empty;
+                SleepReminderVisibility = Visibility.Collapsed;
+            }
+
+            var schedule = BuildSleepReminderSchedule(_sleepReminderDate);
+            if (schedule.Count == 0)
+            {
+                return;
+            }
+
+            var latestScheduled = schedule
+                .Where(time => time <= now)
+                .OrderByDescending(time => time)
+                .FirstOrDefault();
+
+            if (latestScheduled == default)
+            {
+                return;
+            }
+
+            if (latestScheduled == _lastSleepReminderScheduled)
+            {
+                return;
+            }
+
+            _lastSleepReminderScheduled = latestScheduled;
+            _sleepReminderCount++;
+            SleepReminderMessage = $"睡眠提示 {now:yyyy-MM-dd HH:mm} 第{_sleepReminderCount}次";
+            SleepReminderVisibility = Visibility.Visible;
+        }
+
+        private static List<DateTime> BuildSleepReminderSchedule(DateTime day)
+        {
+            var list = new List<DateTime>
+            {
+                day.AddHours(0),
+                day.AddMinutes(30),
+                day.AddHours(1),
+                day.AddHours(1).AddMinutes(30),
+                day.AddHours(2),
+                day.AddHours(2).AddMinutes(15),
+                day.AddHours(2).AddMinutes(30),
+                day.AddHours(2).AddMinutes(45),
+                day.AddHours(3),
+                day.AddHours(3).AddMinutes(15),
+                day.AddHours(3).AddMinutes(30),
+                day.AddHours(3).AddMinutes(45),
+                day.AddHours(4)
+            };
+
+            return list;
         }
 
         private void UpdateBirthdayEasterEgg()
