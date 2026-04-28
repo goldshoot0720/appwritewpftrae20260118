@@ -341,11 +341,19 @@
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <WrapPanel VerticalAlignment="Center">
                             <Button Content="訂閱到期提醒" Style="{StaticResource MenuButtonStyle}" Click="SubscriptionsMenuButton_Click" />
                             <Button Content="油價追蹤" Style="{StaticResource MenuButtonStyle}" Click="OilMonitorMenuButton_Click" />
-                            <Button Content="最瞎結婚理由" Style="{StaticResource MenuButtonStyle}" Margin="0" Click="LotteryMenuButton_Click" />
-                        </StackPanel>
+                            <Button Content="最瞎結婚理由" Style="{StaticResource MenuButtonStyle}" Click="LotteryMenuButton_Click" />
+                            <Button Content="銀行統計" Style="{StaticResource MenuButtonStyle}" Click="BankStatsMenuButton_Click" />
+                            <Button Content="美食管理" Style="{StaticResource MenuButtonStyle}" Click="FoodManagementMenuButton_Click" />
+                            <Button Content="鋒兄筆記" Style="{StaticResource MenuButtonStyle}" Click="FengNotesMenuButton_Click" />
+                            <Button Content="常用帳號" Style="{StaticResource MenuButtonStyle}" Click="FengCommonMenuButton_Click" />
+                            <Button Content="US Debt" Style="{StaticResource MenuButtonStyle}" Click="UsDebtMenuButton_Click" />
+                            <Button Content="鋒兄比價" Style="{StaticResource MenuButtonStyle}" Click="PriceCompareMenuButton_Click" />
+                            <Button Content="電池狀態" Style="{StaticResource MenuButtonStyle}" Click="BatteryStatusMenuButton_Click" />
+                            <Button Content="鋒兄工具" Style="{StaticResource MenuButtonStyle}" Margin="0" Click="FengToolsMenuButton_Click" />
+                        </WrapPanel>
                         <Border Grid.Column="1" Background="#162640" BorderBrush="#2A4264" BorderThickness="1" CornerRadius="999" Padding="12,6">
                             <TextBlock Text="{Binding ActiveStatusMessage}" Foreground="#C0D2F1" FontSize="12" TextTrimming="CharacterEllipsis" MaxWidth="360" />
                         </Border>
@@ -616,6 +624,74 @@
                                 </Border>
                             </StackPanel>
                         </ScrollViewer>
+                    </Grid>
+                    <Grid Visibility="{Binding IsFeatureMenuView, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Border Style="{StaticResource PanelBorderStyle}" Padding="1" Background="{StaticResource WindowSurfaceBrush}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Border Grid.Row="0" Background="#111E33" BorderBrush="#203150" BorderThickness="0,0,0,1" CornerRadius="23,23,0,0" Padding="18,14">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding SelectedFeatureEyebrow}" Foreground="{StaticResource StrongTextBrush}" FontSize="15" FontWeight="SemiBold" />
+                                        <TextBlock Grid.Column="1" Text="參考 Android appwriteandroidtrae 選單" Foreground="#839CC0" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                    <StackPanel Margin="22">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="18" />
+                                                <ColumnDefinition Width="320" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Grid.Column="0" Style="{StaticResource PanelBorderStyle}" Padding="22">
+                                                <StackPanel>
+                                                    <TextBlock Text="{Binding SelectedFeatureTitle}" Foreground="{StaticResource StrongTextBrush}" FontSize="24" FontWeight="SemiBold" />
+                                                    <TextBlock Text="{Binding SelectedFeatureDescription}" Margin="0,10,0,0" Style="{StaticResource InfoTextStyle}" FontSize="14" />
+                                                    <Border Margin="0,18,0,0" Padding="14,12" Background="#14233A" BorderBrush="#2C466A" BorderThickness="1" CornerRadius="14">
+                                                        <TextBlock Text="此入口已先對齊 Android 主畫面選單；資料讀取與完整桌面版操作流程會依各功能逐步接上。"
+                                                                   Foreground="#C0D2F1"
+                                                                   FontSize="13"
+                                                                   TextWrapping="Wrap" />
+                                                    </Border>
+                                                </StackPanel>
+                                            </Border>
+                                            <Border Grid.Column="2" Style="{StaticResource PanelBorderStyle}" Padding="18">
+                                                <StackPanel>
+                                                    <TextBlock Text="Android 對應 Activity" Foreground="#8EAAD2" FontSize="12" FontWeight="SemiBold" />
+                                                    <TextBlock Text="{Binding SelectedFeatureActivity}" Margin="0,10,0,4" Foreground="{StaticResource StrongTextBrush}" FontSize="18" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                    <TextBlock Text="來源：github.com/goldshoot0720/appwriteandroidtrae" Foreground="{StaticResource SubtleBrush}" FontSize="12" TextWrapping="Wrap" />
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                        <ItemsControl ItemsSource="{Binding FeatureMenuItems}" Margin="0,18,0,0">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel />
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Width="260" MinHeight="128" Margin="0,0,14,14" Padding="16" CornerRadius="18" Background="#111E34" BorderBrush="#304567" BorderThickness="1">
+                                                        <StackPanel>
+                                                            <TextBlock Text="{Binding Title}" Foreground="{StaticResource StrongTextBrush}" FontSize="16" FontWeight="SemiBold" />
+                                                            <TextBlock Text="{Binding Description}" Margin="0,8,0,0" Foreground="{StaticResource SubtleBrush}" FontSize="12" TextWrapping="Wrap" />
+                                                            <TextBlock Text="{Binding ActivityName}" Margin="0,12,0,0" Foreground="{StaticResource SuccessBrush}" FontSize="11" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
                     </Grid>
                 </Grid>
                 <TextBlock Grid.Row="8" HorizontalAlignment="Right" Foreground="#6C84A8" FontSize="11" FontWeight="SemiBold" Text="{Binding FooterText}" />

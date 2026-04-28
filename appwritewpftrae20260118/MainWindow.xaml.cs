@@ -29,6 +29,7 @@ namespace appwritewpftrae20260118
         private const string SubscriptionPage = "Subscriptions";
         private const string OilMonitorPage = "OilMonitor";
         private const string LotteryPage = "Lottery";
+        private const string FeatureMenuPage = "FeatureMenu";
         private const string LotteryApiBaseUrl = "https://api.taiwanlottery.com/TLCAPIWeB";
 
         private readonly HttpClient _httpClient = new HttpClient();
@@ -60,6 +61,7 @@ namespace appwritewpftrae20260118
         private string _oilLastFetchDisplay = "尚未抓取";
         private string _lotteryLastFetchDisplay = "尚未更新";
         private string _lotteryPeriodRangeDisplay = string.Empty;
+        private FeatureMenuItem _selectedFeatureMenuItem;
         private bool _isBirthdayEasterEggVisible;
         private string _easterEggBadge = string.Empty;
         private string _easterEggTitle = string.Empty;
@@ -82,12 +84,24 @@ namespace appwritewpftrae20260118
         public ObservableCollection<LotteryResultRow> SuperLottoRows { get; } = new ObservableCollection<LotteryResultRow>();
         public ObservableCollection<LotteryResultRow> Lotto649Rows { get; } = new ObservableCollection<LotteryResultRow>();
         public ObservableCollection<LotteryResultRow> Daily539Rows { get; } = new ObservableCollection<LotteryResultRow>();
+        public ObservableCollection<FeatureMenuItem> FeatureMenuItems { get; } = new ObservableCollection<FeatureMenuItem>
+        {
+            new FeatureMenuItem("銀行統計", "BANKING", "整理 Appwrite bank collection，查看存款、提款、轉帳與卡片資訊。", "BankStatsActivity"),
+            new FeatureMenuItem("美食管理", "FOOD", "搜尋與檢視食物庫存、價格、數量、商店與效期資訊。", "FoodManagementActivity"),
+            new FeatureMenuItem("鋒兄筆記", "NOTES", "讀取 article collection，依標題、內容與連結快速搜尋筆記。", "FengNotesActivity"),
+            new FeatureMenuItem("常用帳號", "COMMON", "把常用網站與帳號資訊分組，做成桌面端可掃描的清單入口。", "FengCommonActivity"),
+            new FeatureMenuItem("US Debt", "US DEBT", "追蹤美國國債數值與歷史趨勢。", "USDebtActivity"),
+            new FeatureMenuItem("鋒兄比價", "PRICE COMPARE", "銜接 Android 的 PChome / momo 價格比較工具。", "PriceCompareActivity"),
+            new FeatureMenuItem("電池狀態", "BATTERY", "顯示電池目前狀態、預估時間與最後充滿資訊。", "BatteryStatusActivity"),
+            new FeatureMenuItem("鋒兄工具", "FENGBRO TOOLS", "工具集合入口，包含比價與手機比較等 Android 功能。", "FengToolsActivity")
+        };
 
         public event PropertyChangedEventHandler PropertyChanged;
 
         public MainWindow()
         {
             InitializeComponent();
+            _selectedFeatureMenuItem = FeatureMenuItems.FirstOrDefault();
             DataContext = this;
             Loaded += MainWindow_Loaded;
             _oilHistoryFilePath = System.IO.Path.Combine(
@@ -141,6 +155,12 @@ namespace appwritewpftrae20260118
         public bool IsSubscriptionView => string.Equals(_currentPage, SubscriptionPage, StringComparison.Ordinal);
         public bool IsOilMonitorView => string.Equals(_currentPage, OilMonitorPage, StringComparison.Ordinal);
         public bool IsLotteryView => string.Equals(_currentPage, LotteryPage, StringComparison.Ordinal);
+        public bool IsFeatureMenuView => string.Equals(_currentPage, FeatureMenuPage, StringComparison.Ordinal);
+
+        public string SelectedFeatureTitle => _selectedFeatureMenuItem?.Title ?? "功能選單";
+        public string SelectedFeatureEyebrow => _selectedFeatureMenuItem?.Eyebrow ?? "ANDROID MENU";
+        public string SelectedFeatureDescription => _selectedFeatureMenuItem?.Description ?? "參考 Android appwriteandroidtrae 的主畫面選單。";
+        public string SelectedFeatureActivity => _selectedFeatureMenuItem?.ActivityName ?? "MainActivity";
 
         public string CurrentPageTitle
         {
@@ -148,6 +168,7 @@ namespace appwritewpftrae20260118
             {
                 if (IsSubscriptionView) return "訂閱到期提醒";
                 if (IsOilMonitorView) return "油價追蹤";
+                if (IsFeatureMenuView) return SelectedFeatureTitle;
                 return "最瞎結婚理由";
             }
         }
@@ -166,6 +187,11 @@ namespace appwritewpftrae20260118
                     return "追蹤 Gulf Mercantile Exchange 的 OQD Daily Marker Price，保留歷史資料並用圖表快速檢視變化。";
                 }
 
+                if (IsFeatureMenuView)
+                {
+                    return SelectedFeatureDescription;
+                }
+
                 return "根據台灣彩券官方 API 列出威力彩、大樂透、今彩539近三個月每期號碼，並比對你指定的號碼組。";
             }
         }
@@ -176,6 +202,7 @@ namespace appwritewpftrae20260118
             {
                 if (IsSubscriptionView) return "重新整理";
                 if (IsOilMonitorView) return "抓最新牌價";
+                if (IsFeatureMenuView) return "確認選單";
                 return "更新彩券資料";
             }
         }
@@ -186,6 +213,7 @@ namespace appwritewpftrae20260118
             {
                 if (IsSubscriptionView) return StatusMessage;
                 if (IsOilMonitorView) return OilStatusMessage;
+                if (IsFeatureMenuView) return $"已選取 {SelectedFeatureTitle}";
                 return LotteryStatusMessage;
             }
         }
@@ -196,6 +224,7 @@ namespace appwritewpftrae20260118
             {
                 if (IsSubscriptionView) return "資料來源：Appwrite Databases / SUBSCRIPTION";
                 if (IsOilMonitorView) return "資料來源：Gulf Mercantile Exchange / OQD Daily Marker Price";
+                if (IsFeatureMenuView) return "選單參考：github.com/goldshoot0720/appwriteandroidtrae";
                 return "資料來源：台灣彩券官方 API";
             }
         }
@@ -465,6 +494,12 @@ namespace appwritewpftrae20260118
                 return;
             }
 
+            if (IsFeatureMenuView)
+            {
+                OnPropertyChanged(nameof(ActiveStatusMessage));
+                return;
+            }
+
             await LoadLotteryDataAsync();
         }
 
@@ -487,16 +522,69 @@ namespace appwritewpftrae20260118
             UpdatePageState();
         }
 
+        private void BankStatsMenuButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShowFeatureMenu("銀行統計");
+        }
+
+        private void FoodManagementMenuButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShowFeatureMenu("美食管理");
+        }
+
+        private void FengNotesMenuButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShowFeatureMenu("鋒兄筆記");
+        }
+
+        private void FengCommonMenuButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShowFeatureMenu("常用帳號");
+        }
+
+        private void UsDebtMenuButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShowFeatureMenu("US Debt");
+        }
+
+        private void PriceCompareMenuButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShowFeatureMenu("鋒兄比價");
+        }
+
+        private void BatteryStatusMenuButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShowFeatureMenu("電池狀態");
+        }
+
+        private void FengToolsMenuButton_Click(object sender, RoutedEventArgs e)
+        {
+            ShowFeatureMenu("鋒兄工具");
+        }
+
+        private void ShowFeatureMenu(string title)
+        {
+            _selectedFeatureMenuItem = FeatureMenuItems.FirstOrDefault(item => string.Equals(item.Title, title, StringComparison.Ordinal))
+                                       ?? FeatureMenuItems.FirstOrDefault();
+            _currentPage = FeatureMenuPage;
+            UpdatePageState();
+        }
+
         private void UpdatePageState()
         {
             OnPropertyChanged(nameof(IsSubscriptionView));
             OnPropertyChanged(nameof(IsOilMonitorView));
             OnPropertyChanged(nameof(IsLotteryView));
+            OnPropertyChanged(nameof(IsFeatureMenuView));
             OnPropertyChanged(nameof(CurrentPageTitle));
             OnPropertyChanged(nameof(CurrentPageSubtitle));
             OnPropertyChanged(nameof(CurrentActionLabel));
             OnPropertyChanged(nameof(ActiveStatusMessage));
             OnPropertyChanged(nameof(FooterText));
+            OnPropertyChanged(nameof(SelectedFeatureTitle));
+            OnPropertyChanged(nameof(SelectedFeatureEyebrow));
+            OnPropertyChanged(nameof(SelectedFeatureDescription));
+            OnPropertyChanged(nameof(SelectedFeatureActivity));
         }
         private async Task LoadSubscriptionsAsync()
         {
@@ -1244,6 +1332,22 @@ namespace appwritewpftrae20260118
         public string Pick2 { get; set; }
         public string Pick3 { get; set; }
         public string Pick4 { get; set; }
+    }
+
+    public class FeatureMenuItem
+    {
+        public FeatureMenuItem(string title, string eyebrow, string description, string activityName)
+        {
+            Title = title;
+            Eyebrow = eyebrow;
+            Description = description;
+            ActivityName = activityName;
+        }
+
+        public string Title { get; }
+        public string Eyebrow { get; }
+        public string Description { get; }
+        public string ActivityName { get; }
     }
 
     internal class LotteryDrawResult
