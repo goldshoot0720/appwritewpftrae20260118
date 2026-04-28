@@ -71,9 +71,9 @@ namespace appwritewpftrae20260118
         private DateTime _lastOilFetchDate = DateTime.MinValue;
         private string _sleepReminderMessage = string.Empty;
         private Visibility _sleepReminderVisibility = Visibility.Collapsed;
-        private DateTime _sleepReminderDate = DateTime.MinValue;
-        private DateTime _lastSleepReminderScheduled = DateTime.MinValue;
-        private int _sleepReminderCount;
+        private Brush _sleepReminderBackground = Brushes.Transparent;
+        private Brush _sleepReminderBorderBrush = Brushes.Transparent;
+        private Brush _sleepReminderForeground = Brushes.White;
         private DispatcherTimer _sleepReminderTimer;
 
         public ObservableCollection<Subscription> Subscriptions { get; } = new ObservableCollection<Subscription>();
@@ -288,6 +288,39 @@ namespace appwritewpftrae20260118
             }
         }
 
+        public Brush SleepReminderBackground
+        {
+            get => _sleepReminderBackground;
+            set
+            {
+                if (_sleepReminderBackground == value) return;
+                _sleepReminderBackground = value;
+                OnPropertyChanged(nameof(SleepReminderBackground));
+            }
+        }
+
+        public Brush SleepReminderBorderBrush
+        {
+            get => _sleepReminderBorderBrush;
+            set
+            {
+                if (_sleepReminderBorderBrush == value) return;
+                _sleepReminderBorderBrush = value;
+                OnPropertyChanged(nameof(SleepReminderBorderBrush));
+            }
+        }
+
+        public Brush SleepReminderForeground
+        {
+            get => _sleepReminderForeground;
+            set
+            {
+                if (_sleepReminderForeground == value) return;
+                _sleepReminderForeground = value;
+                OnPropertyChanged(nameof(SleepReminderForeground));
+            }
+        }
+
         public bool IsBirthdayEasterEggVisible
         {
             get => _isBirthdayEasterEggVisible;
@@ -366,62 +399,28 @@ namespace appwritewpftrae20260118
 
         private void CheckAndUpdateSleepReminder(DateTime now)
         {
-            if (_sleepReminderDate.Date != now.Date)
+            if (now.Hour >= 0 && now.Hour <= 2)
             {
-                _sleepReminderDate = now.Date;
-                _sleepReminderCount = 0;
-                _lastSleepReminderScheduled = DateTime.MinValue;
-                SleepReminderMessage = string.Empty;
-                SleepReminderVisibility = Visibility.Collapsed;
-            }
-
-            var schedule = BuildSleepReminderSchedule(_sleepReminderDate);
-            if (schedule.Count == 0)
-            {
+                SleepReminderMessage = "請入睡";
+                SleepReminderBackground = new SolidColorBrush(Color.FromRgb(59, 50, 18));
+                SleepReminderBorderBrush = new SolidColorBrush(Color.FromRgb(214, 169, 39));
+                SleepReminderForeground = new SolidColorBrush(Color.FromRgb(255, 228, 154));
+                SleepReminderVisibility = Visibility.Visible;
                 return;
             }
 
-            var latestScheduled = schedule
-                .Where(time => time <= now)
-                .OrderByDescending(time => time)
-                .FirstOrDefault();
-
-            if (latestScheduled == default)
+            if (now.Hour >= 3 && now.Hour <= 6)
             {
+                SleepReminderMessage = "請入睡";
+                SleepReminderBackground = new SolidColorBrush(Color.FromRgb(66, 23, 23));
+                SleepReminderBorderBrush = new SolidColorBrush(Color.FromRgb(224, 82, 82));
+                SleepReminderForeground = new SolidColorBrush(Color.FromRgb(255, 213, 213));
+                SleepReminderVisibility = Visibility.Visible;
                 return;
             }
 
-            if (latestScheduled == _lastSleepReminderScheduled)
-            {
-                return;
-            }
-
-            _lastSleepReminderScheduled = latestScheduled;
-            _sleepReminderCount++;
-            SleepReminderMessage = $"睡眠提示 {now:yyyy-MM-dd HH:mm} 第{_sleepReminderCount}次";
-            SleepReminderVisibility = Visibility.Visible;
-        }
-
-        private static List<DateTime> BuildSleepReminderSchedule(DateTime day)
-        {
-            var list = new List<DateTime>
-            {
-                day.AddHours(0),
-                day.AddMinutes(30),
-                day.AddHours(1),
-                day.AddHours(1).AddMinutes(30),
-                day.AddHours(2),
-                day.AddHours(2).AddMinutes(15),
-                day.AddHours(2).AddMinutes(30),
-                day.AddHours(2).AddMinutes(45),
-                day.AddHours(3),
-                day.AddHours(3).AddMinutes(15),
-                day.AddHours(3).AddMinutes(30),
-                day.AddHours(3).AddMinutes(45),
-                day.AddHours(4)
-            };
-
-            return list;
+            SleepReminderMessage = string.Empty;
+            SleepReminderVisibility = Visibility.Collapsed;
         }
 
         private void UpdateBirthdayEasterEgg()

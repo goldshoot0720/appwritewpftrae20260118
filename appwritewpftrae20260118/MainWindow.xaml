@@ -211,13 +211,13 @@
                                 </TextBlock>
                                 <Border Margin="0,12,0,0"
                                         Padding="12,10"
-                                        Background="#1A273D"
-                                        BorderBrush="#3A5378"
+                                        Background="{Binding SleepReminderBackground}"
+                                        BorderBrush="{Binding SleepReminderBorderBrush}"
                                         BorderThickness="1"
                                         CornerRadius="12"
                                         Visibility="{Binding SleepReminderVisibility}">
                                     <TextBlock Text="{Binding SleepReminderMessage}"
-                                               Foreground="#E7C46C"
+                                               Foreground="{Binding SleepReminderForeground}"
                                                FontSize="13"
                                                FontWeight="SemiBold"
                                                TextWrapping="Wrap" />
