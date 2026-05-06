@@ -21,6 +21,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using System.Xml.Linq;
 using Drawing = System.Drawing;
 using Forms = System.Windows.Forms;
 
@@ -32,7 +33,9 @@ namespace appwritewpftrae20260118
         private const string OilMonitorPage = "OilMonitor";
         private const string LotteryPage = "Lottery";
         private const string FeatureMenuPage = "FeatureMenu";
+        private const string FengTubePage = "FengTube";
         private const string LotteryApiBaseUrl = "https://api.taiwanlottery.com/TLCAPIWeB";
+        private const int TubeVideoLimitPerChannel = 10;
 
         private readonly HttpClient _httpClient = new HttpClient();
         private readonly string _oilHistoryFilePath;
@@ -73,6 +76,7 @@ namespace appwritewpftrae20260118
         private Timer _dailyTimer;
         private DateTime _lastNotifyDate = DateTime.MinValue;
         private DateTime _lastOilFetchDate = DateTime.MinValue;
+        private DateTime _lastTubeFetchDate = DateTime.MinValue;
         private string _sleepReminderMessage = string.Empty;
         private Visibility _sleepReminderVisibility = Visibility.Collapsed;
         private Brush _sleepReminderBackground = Brushes.Transparent;
@@ -86,6 +90,9 @@ namespace appwritewpftrae20260118
         private string _voiceLastPhrase = "尚未收到語音";
         private string _voicePendingCommandText = "沒有待確認指令";
         private string _voiceCommandSummary = "可說：鋒兄首頁、鋒兄儀表、鋒兄訂閱、鋒兄食品、鋒兄筆記、鋒兄常用、鋒兄圖片、鋒兄影片、鋒兄音樂、鋒兄文件、鋒兄播客、鋒兄銀行、鋒兄例行、鋒兄設定、鋒兄關於、重新整理。聽到後請再說「確認」或「取消」。";
+        private string _tubeStatusMessage = "鋒兄Tube 尚未載入";
+        private string _tubeFreshAlertMessage = string.Empty;
+        private Visibility _tubeFreshAlertVisibility = Visibility.Collapsed;
 
         public ObservableCollection<Subscription> Subscriptions { get; } = new ObservableCollection<Subscription>();
         public ObservableCollection<OilPriceRecord> OilPriceHistory { get; } = new ObservableCollection<OilPriceRecord>();
@@ -93,6 +100,19 @@ namespace appwritewpftrae20260118
         public ObservableCollection<LotteryResultRow> SuperLottoRows { get; } = new ObservableCollection<LotteryResultRow>();
         public ObservableCollection<LotteryResultRow> Lotto649Rows { get; } = new ObservableCollection<LotteryResultRow>();
         public ObservableCollection<LotteryResultRow> Daily539Rows { get; } = new ObservableCollection<LotteryResultRow>();
+        public ObservableCollection<YouTubeChannelGroup> YouTubeChannels { get; } = new ObservableCollection<YouTubeChannelGroup>
+        {
+            new YouTubeChannelGroup("SJdiao", "https://www.youtube.com/@SJdiao/videos"),
+            new YouTubeChannelGroup("henren778", "https://www.youtube.com/@henren778"),
+            new YouTubeChannelGroup("libertas1984", "https://www.youtube.com/@libertas1984/videos"),
+            new YouTubeChannelGroup("sunlao", "https://www.youtube.com/@sunlao/videos"),
+            new YouTubeChannelGroup("Torontobigface", "https://www.youtube.com/@Torontobigface/videos"),
+            new YouTubeChannelGroup("junyulan", "https://www.youtube.com/@junyulan/videos"),
+            new YouTubeChannelGroup("blackwhite_raven", "https://www.youtube.com/@blackwhite_raven/videos"),
+            new YouTubeChannelGroup("quedaren", "https://www.youtube.com/@quedaren/videos"),
+            new YouTubeChannelGroup("夸克说", "https://www.youtube.com/@%E5%A4%B8%E5%85%8B%E8%AF%B4"),
+            new YouTubeChannelGroup("喵喵看一看", "https://www.youtube.com/@%E5%96%B5%E5%96%B5%E7%9C%8B%E4%B8%80%E7%9C%8B/videos")
+        };
         public ObservableCollection<FeatureMenuItem> FeatureMenuItems { get; } = new ObservableCollection<FeatureMenuItem>
         {
             new FeatureMenuItem("銀行統計", "BANKING", "整理 Appwrite bank collection，查看存款、提款、轉帳與卡片資訊。", "BankStatsActivity"),
@@ -176,6 +196,8 @@ namespace appwritewpftrae20260118
         public bool IsOilMonitorView => string.Equals(_currentPage, OilMonitorPage, StringComparison.Ordinal);
         public bool IsLotteryView => string.Equals(_currentPage, LotteryPage, StringComparison.Ordinal);
         public bool IsFeatureMenuView => string.Equals(_currentPage, FeatureMenuPage, StringComparison.Ordinal);
+        public bool IsTubeView => string.Equals(_currentPage, FengTubePage, StringComparison.Ordinal);
+        public bool IsFengToolsSelected => IsFeatureMenuView && string.Equals(SelectedFeatureTitle, "鋒兄工具", StringComparison.Ordinal);
 
         public string SelectedFeatureTitle => _selectedFeatureMenuItem?.Title ?? "功能選單";
         public string SelectedFeatureEyebrow => _selectedFeatureMenuItem?.Eyebrow ?? "ANDROID MENU";
@@ -235,6 +257,7 @@ namespace appwritewpftrae20260118
                 if (IsSubscriptionView) return "訂閱到期提醒";
                 if (IsOilMonitorView) return "油價追蹤";
                 if (IsFeatureMenuView) return SelectedFeatureTitle;
+                if (IsTubeView) return "鋒兄Tube";
                 return "最瞎結婚理由";
             }
         }
@@ -258,6 +281,11 @@ namespace appwritewpftrae20260118
                     return SelectedFeatureDescription;
                 }
 
+                if (IsTubeView)
+                {
+                    return "鋒兄工具子選單，集中追蹤指定 YouTube 頻道，每個頻道顯示最新 10 部影片，3 天內有新片會在首頁提醒。";
+                }
+
                 return "根據台灣彩券官方 API 列出威力彩、大樂透、今彩539近三個月每期號碼，並比對你指定的號碼組。";
             }
         }
@@ -269,6 +297,7 @@ namespace appwritewpftrae20260118
                 if (IsSubscriptionView) return "重新整理";
                 if (IsOilMonitorView) return "抓最新牌價";
                 if (IsFeatureMenuView) return "確認選單";
+                if (IsTubeView) return "更新Tube";
                 return "更新彩券資料";
             }
         }
@@ -280,6 +309,7 @@ namespace appwritewpftrae20260118
                 if (IsSubscriptionView) return StatusMessage;
                 if (IsOilMonitorView) return OilStatusMessage;
                 if (IsFeatureMenuView) return $"已選取 {SelectedFeatureTitle}";
+                if (IsTubeView) return TubeStatusMessage;
                 return LotteryStatusMessage;
             }
         }
@@ -291,7 +321,42 @@ namespace appwritewpftrae20260118
                 if (IsSubscriptionView) return "資料來源：Appwrite Databases / SUBSCRIPTION";
                 if (IsOilMonitorView) return "資料來源：Gulf Mercantile Exchange / OQD Daily Marker Price";
                 if (IsFeatureMenuView) return "選單參考：github.com/goldshoot0720/appwriteandroidtrae";
+                if (IsTubeView) return "資料來源：YouTube channel RSS feeds";
                 return "資料來源：台灣彩券官方 API";
+            }
+        }
+
+        public string TubeStatusMessage
+        {
+            get => _tubeStatusMessage;
+            set
+            {
+                if (_tubeStatusMessage == value) return;
+                _tubeStatusMessage = value;
+                OnPropertyChanged(nameof(TubeStatusMessage));
+                OnPropertyChanged(nameof(ActiveStatusMessage));
+            }
+        }
+
+        public string TubeFreshAlertMessage
+        {
+            get => _tubeFreshAlertMessage;
+            set
+            {
+                if (_tubeFreshAlertMessage == value) return;
+                _tubeFreshAlertMessage = value;
+                OnPropertyChanged(nameof(TubeFreshAlertMessage));
+            }
+        }
+
+        public Visibility TubeFreshAlertVisibility
+        {
+            get => _tubeFreshAlertVisibility;
+            set
+            {
+                if (_tubeFreshAlertVisibility == value) return;
+                _tubeFreshAlertVisibility = value;
+                OnPropertyChanged(nameof(TubeFreshAlertVisibility));
             }
         }
 
@@ -466,6 +531,7 @@ namespace appwritewpftrae20260118
             await LoadSubscriptionsAsync();
             await RefreshOilDataAsync(forceFetch: false);
             await LoadLotteryDataAsync();
+            await LoadFengTubeVideosAsync(showNotification: true);
             await CheckAndNotifyExpiringSubscriptions();
             _lastNotifyDate = DateTime.Today;
             ScheduleDailyTasks();
@@ -642,6 +708,11 @@ namespace appwritewpftrae20260118
                     _currentPage = LotteryPage;
                     UpdatePageState();
                     break;
+                case VoiceCommandAction.FengTube:
+                    _currentPage = FengTubePage;
+                    UpdatePageState();
+                    _ = LoadFengTubeVideosAsync(showNotification: true);
+                    break;
                 case VoiceCommandAction.Feature:
                     ShowFeatureMenu(command.TargetTitle);
                     break;
@@ -674,6 +745,12 @@ namespace appwritewpftrae20260118
             if (IsLotteryView)
             {
                 await LoadLotteryDataAsync();
+                return;
+            }
+
+            if (IsTubeView)
+            {
+                await LoadFengTubeVideosAsync(showNotification: true);
                 return;
             }
 
@@ -727,6 +804,7 @@ namespace appwritewpftrae20260118
                 VoiceCommand.ForFeature("例行事項", "開啟鋒兄例行", Expand("鋒兄例行", "例行", "例行事項", "routine", "日常", "每日任務", "固定任務", "習慣", "待辦")),
                 VoiceCommand.ForFeature("設定", "開啟鋒兄設定", Expand("鋒兄設定", "設定", "偏好設定", "系統設定", "通知設定", "啟動設定", "語音設定", "本機設定")),
                 VoiceCommand.ForFeature("關於", "開啟鋒兄關於", Expand("鋒兄關於", "關於", "關於鋒兄", "版本資訊", "程式資訊", "維護資訊", "說明頁")),
+                new VoiceCommand(VoiceCommandAction.FengTube, null, "開啟鋒兄Tube", Expand("鋒兄Tube", "鋒兄tube", "Tube", "tube", "YouTube", "youtube", "影片頻道", "頻道追蹤", "最新影片")),
                 new VoiceCommand(VoiceCommandAction.Oil, null, "開啟油價追蹤", Expand("油價", "油價追蹤", "鋒兄油價", "汽油", "柴油", "油價圖表", "油價紀錄")),
                 new VoiceCommand(VoiceCommandAction.Lottery, null, "開啟彩券比對", Expand("彩券", "最瞎結婚理由", "樂透", "大樂透", "威力彩", "今彩", "彩券比對")),
                 new VoiceCommand(VoiceCommandAction.Refresh, null, "重新整理目前頁面", Expand("重新整理", "刷新", "更新", "重整", "抓最新", "重新載入", "同步資料", "更新資料")),
@@ -842,6 +920,12 @@ namespace appwritewpftrae20260118
                 return;
             }
 
+            if (IsTubeView)
+            {
+                await LoadFengTubeVideosAsync(showNotification: true);
+                return;
+            }
+
             await LoadLotteryDataAsync();
         }
 
@@ -904,6 +988,24 @@ namespace appwritewpftrae20260118
             ShowFeatureMenu("鋒兄工具");
         }
 
+        private async void FengTubeMenuButton_Click(object sender, RoutedEventArgs e)
+        {
+            _currentPage = FengTubePage;
+            UpdatePageState();
+            if (!YouTubeChannels.Any(channel => channel.Videos.Any()))
+            {
+                await LoadFengTubeVideosAsync(showNotification: true);
+            }
+        }
+
+        private void OpenTubeVideoButton_Click(object sender, RoutedEventArgs e)
+        {
+            if ((sender as FrameworkElement)?.Tag is string url && !string.IsNullOrWhiteSpace(url))
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true });
+            }
+        }
+
         private void ShowFeatureMenu(string title)
         {
             _selectedFeatureMenuItem = FeatureMenuItems.FirstOrDefault(item => string.Equals(item.Title, title, StringComparison.Ordinal))
@@ -918,6 +1020,8 @@ namespace appwritewpftrae20260118
             OnPropertyChanged(nameof(IsOilMonitorView));
             OnPropertyChanged(nameof(IsLotteryView));
             OnPropertyChanged(nameof(IsFeatureMenuView));
+            OnPropertyChanged(nameof(IsTubeView));
+            OnPropertyChanged(nameof(IsFengToolsSelected));
             OnPropertyChanged(nameof(CurrentPageTitle));
             OnPropertyChanged(nameof(CurrentPageSubtitle));
             OnPropertyChanged(nameof(CurrentActionLabel));
@@ -928,6 +1032,138 @@ namespace appwritewpftrae20260118
             OnPropertyChanged(nameof(SelectedFeatureDescription));
             OnPropertyChanged(nameof(SelectedFeatureActivity));
         }
+
+        private async Task LoadFengTubeVideosAsync(bool showNotification)
+        {
+            TubeStatusMessage = "正在載入鋒兄Tube頻道...";
+            var freshVideos = new List<YouTubeVideoItem>();
+            var loadedChannels = 0;
+
+            foreach (var channel in YouTubeChannels)
+            {
+                channel.Status = "載入中";
+            }
+
+            var channelResults = await Task.WhenAll(YouTubeChannels.Select(async channel =>
+            {
+                try
+                {
+                    var videos = await FetchYouTubeChannelVideosAsync(channel.SourceUrl);
+                    return new YouTubeChannelLoadResult(channel, videos, null);
+                }
+                catch (Exception ex)
+                {
+                    return new YouTubeChannelLoadResult(channel, new List<YouTubeVideoItem>(), ex.Message);
+                }
+            }));
+
+            foreach (var result in channelResults)
+            {
+                var channel = result.Channel;
+                if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
+                {
+                    channel.Status = $"載入失敗：{result.ErrorMessage}";
+                    continue;
+                }
+
+                var videos = result.Videos.Take(TubeVideoLimitPerChannel).ToList();
+                channel.Videos.Clear();
+                foreach (var video in videos)
+                {
+                    channel.Videos.Add(video);
+                }
+
+                channel.DisplayName = videos.FirstOrDefault()?.ChannelTitle ?? channel.DisplayName;
+                channel.Status = channel.Videos.Count == 0 ? "目前沒有讀到影片" : $"最新 {channel.Videos.Count} 部";
+                freshVideos.AddRange(channel.Videos.Where(video => video.PublishedAt >= DateTimeOffset.Now.AddDays(-3)));
+                loadedChannels++;
+            }
+
+            if (freshVideos.Count > 0)
+            {
+                var newest = freshVideos.OrderByDescending(video => video.PublishedAt).First();
+                TubeFreshAlertMessage = $"鋒兄Tube 近 3 天有 {freshVideos.Count} 部新影片，最新：{newest.ChannelTitle} - {newest.Title}";
+                TubeFreshAlertVisibility = Visibility.Visible;
+                if (showNotification)
+                {
+                    ShowDesktopNotification("鋒兄Tube 新影片", TubeFreshAlertMessage);
+                }
+            }
+            else
+            {
+                TubeFreshAlertMessage = "鋒兄Tube 近 3 天沒有新影片。";
+                TubeFreshAlertVisibility = Visibility.Collapsed;
+            }
+
+            TubeStatusMessage = $"鋒兄Tube 已更新 {loadedChannels}/{YouTubeChannels.Count} 個頻道，時間 {DateTime.Now:HH:mm:ss}";
+        }
+
+        private async Task<List<YouTubeVideoItem>> FetchYouTubeChannelVideosAsync(string channelUrl)
+        {
+            var html = await _httpClient.GetStringAsync(channelUrl);
+            var feedUrl = ResolveYouTubeFeedUrl(html);
+            if (string.IsNullOrWhiteSpace(feedUrl))
+            {
+                throw new InvalidOperationException("找不到頻道 RSS");
+            }
+
+            var xml = await _httpClient.GetStringAsync(feedUrl);
+            var document = XDocument.Parse(xml);
+            XNamespace atom = "http://www.w3.org/2005/Atom";
+            XNamespace media = "http://search.yahoo.com/mrss/";
+
+            return document.Root?
+                       .Elements(atom + "entry")
+                       .Select(entry =>
+                       {
+                           var link = entry.Elements(atom + "link").FirstOrDefault()?.Attribute("href")?.Value ?? string.Empty;
+                           var publishedText = entry.Element(atom + "published")?.Value;
+                           DateTimeOffset.TryParse(publishedText, out var publishedAt);
+                           return new YouTubeVideoItem
+                           {
+                               Title = WebUtility.HtmlDecode(entry.Element(atom + "title")?.Value ?? "未命名影片"),
+                               Url = link,
+                               ChannelTitle = WebUtility.HtmlDecode(entry.Element(atom + "author")?.Element(atom + "name")?.Value ?? string.Empty),
+                               PublishedAt = publishedAt,
+                               ThumbnailUrl = entry.Element(media + "group")?.Element(media + "thumbnail")?.Attribute("url")?.Value ?? string.Empty
+                           };
+                       })
+                       .OrderByDescending(video => video.PublishedAt)
+                       .Take(TubeVideoLimitPerChannel)
+                       .ToList()
+                   ?? new List<YouTubeVideoItem>();
+        }
+
+        private static string ResolveYouTubeFeedUrl(string html)
+        {
+            var rssMatch = Regex.Match(html, @"""rssUrl"":""(?<url>[^""]+)""");
+            if (rssMatch.Success)
+            {
+                return DecodeYouTubeJsonUrl(rssMatch.Groups["url"].Value);
+            }
+
+            var externalIdMatch = Regex.Match(html, @"""externalId"":""(?<id>UC[^""]+)""");
+            if (externalIdMatch.Success)
+            {
+                return $"https://www.youtube.com/feeds/videos.xml?channel_id={externalIdMatch.Groups["id"].Value}";
+            }
+
+            var channelIdMatch = Regex.Match(html, @"""channelId"":""(?<id>UC[^""]+)""");
+            if (channelIdMatch.Success)
+            {
+                return $"https://www.youtube.com/feeds/videos.xml?channel_id={channelIdMatch.Groups["id"].Value}";
+            }
+
+            return string.Empty;
+        }
+
+        private static string DecodeYouTubeJsonUrl(string value)
+        {
+            return WebUtility.HtmlDecode(value)
+                .Replace("\\u0026", "&")
+                .Replace("\\/", "/");
+        }
+
         private async Task LoadSubscriptionsAsync()
         {
             try
@@ -1479,6 +1715,15 @@ namespace appwritewpftrae20260118
                     await RefreshOilDataAsync(forceFetch: true);
                     _lastOilFetchDate = now.Date;
                 }
+
+                if (now.Hour >= 9 && _lastTubeFetchDate.Date != now.Date)
+                {
+                    await Application.Current.Dispatcher.InvokeAsync(async () =>
+                    {
+                        await LoadFengTubeVideosAsync(showNotification: true);
+                    });
+                    _lastTubeFetchDate = now.Date;
+                }
             };
         }
 
@@ -1718,11 +1963,89 @@ namespace appwritewpftrae20260118
         public string ActivityName { get; }
     }
 
+    public class YouTubeChannelGroup : INotifyPropertyChanged
+    {
+        private string _displayName;
+        private string _status = "等待載入";
+
+        public YouTubeChannelGroup(string displayName, string sourceUrl)
+        {
+            _displayName = displayName;
+            SourceUrl = sourceUrl;
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        public string DisplayName
+        {
+            get => _displayName;
+            set
+            {
+                if (_displayName == value) return;
+                _displayName = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(DisplayName)));
+            }
+        }
+
+        public string SourceUrl { get; }
+
+        public string Status
+        {
+            get => _status;
+            set
+            {
+                if (_status == value) return;
+                _status = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Status)));
+            }
+        }
+
+        public ObservableCollection<YouTubeVideoItem> Videos { get; } = new ObservableCollection<YouTubeVideoItem>();
+    }
+
+    public class YouTubeVideoItem
+    {
+        public string Title { get; set; }
+        public string Url { get; set; }
+        public string ChannelTitle { get; set; }
+        public string ThumbnailUrl { get; set; }
+        public DateTimeOffset PublishedAt { get; set; }
+        public string PublishedDisplay => PublishedAt == default ? "未知時間" : PublishedAt.LocalDateTime.ToString("yyyy/MM/dd HH:mm");
+        public string AgeDisplay
+        {
+            get
+            {
+                if (PublishedAt == default) return "未知";
+                var age = DateTimeOffset.Now - PublishedAt;
+                if (age.TotalHours < 24) return $"{Math.Max(1, (int)Math.Round(age.TotalHours))} 小時前";
+                return $"{Math.Max(1, (int)Math.Round(age.TotalDays))} 天前";
+            }
+        }
+
+        public bool IsFresh => PublishedAt >= DateTimeOffset.Now.AddDays(-3);
+        public string FreshBadge => IsFresh ? "3天內新片" : string.Empty;
+    }
+
+    internal class YouTubeChannelLoadResult
+    {
+        public YouTubeChannelLoadResult(YouTubeChannelGroup channel, List<YouTubeVideoItem> videos, string errorMessage)
+        {
+            Channel = channel;
+            Videos = videos;
+            ErrorMessage = errorMessage;
+        }
+
+        public YouTubeChannelGroup Channel { get; }
+        public List<YouTubeVideoItem> Videos { get; }
+        public string ErrorMessage { get; }
+    }
+
     internal enum VoiceCommandAction
     {
         Subscription,
         Oil,
         Lottery,
+        FengTube,
         Feature,
         Refresh,
         Help

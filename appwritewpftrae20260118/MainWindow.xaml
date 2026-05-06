@@ -222,6 +222,19 @@
                                                FontWeight="SemiBold"
                                                TextWrapping="Wrap" />
                                 </Border>
+                                <Border Margin="0,12,0,0"
+                                        Padding="12,10"
+                                        Background="#102B24"
+                                        BorderBrush="#3A8E73"
+                                        BorderThickness="1"
+                                        CornerRadius="12"
+                                        Visibility="{Binding TubeFreshAlertVisibility}">
+                                    <TextBlock Text="{Binding TubeFreshAlertMessage}"
+                                               Foreground="{StaticResource SuccessBrush}"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               TextWrapping="Wrap" />
+                                </Border>
                                 <Border Margin="0,12,0,0" Padding="14" Background="#101D31" BorderBrush="#2B466A" BorderThickness="1" CornerRadius="14">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
@@ -676,6 +689,19 @@
                                                                    FontSize="13"
                                                                    TextWrapping="Wrap" />
                                                     </Border>
+                                                    <Border Margin="0,18,0,0" Padding="16" Background="#102B24" BorderBrush="#3A8E73" BorderThickness="1" CornerRadius="14" Visibility="{Binding IsFengToolsSelected, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <StackPanel>
+                                                                <TextBlock Text="鋒兄Tube" Foreground="{StaticResource StrongTextBrush}" FontSize="18" FontWeight="SemiBold" />
+                                                                <TextBlock Text="追蹤指定 YouTube 頻道，每個頻道列出最新 10 部，3 天內新片會在首頁提醒。" Margin="0,8,0,0" Foreground="{StaticResource SuccessBrush}" FontSize="13" TextWrapping="Wrap" />
+                                                            </StackPanel>
+                                                            <Button Grid.Column="1" Content="開啟Tube" MinWidth="96" Height="40" Margin="16,0,0,0" Style="{StaticResource PrimaryButtonStyle}" Click="FengTubeMenuButton_Click" />
+                                                        </Grid>
+                                                    </Border>
                                                 </StackPanel>
                                             </Border>
                                             <Border Grid.Column="2" Style="{StaticResource PanelBorderStyle}" Padding="18">
@@ -705,6 +731,89 @@
                                             </ItemsControl.ItemTemplate>
                                         </ItemsControl>
                                     </StackPanel>
+                                </ScrollViewer>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                    <Grid Visibility="{Binding IsTubeView, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Border Style="{StaticResource PanelBorderStyle}" Padding="1" Background="{StaticResource WindowSurfaceBrush}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Border Grid.Row="0" Background="#111E33" BorderBrush="#203150" BorderThickness="0,0,0,1" CornerRadius="23,23,0,0" Padding="18,14">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="FENGBRO TUBE" Foreground="{StaticResource StrongTextBrush}" FontSize="15" FontWeight="SemiBold" />
+                                        <TextBlock Grid.Column="1" Text="{Binding TubeStatusMessage}" Foreground="#839CC0" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                                    <ItemsControl ItemsSource="{Binding YouTubeChannels}" Margin="22">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Margin="0,0,0,18" Padding="18" CornerRadius="18" Background="#111E34" BorderBrush="#304567" BorderThickness="1">
+                                                    <Grid>
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition Height="Auto" />
+                                                            <RowDefinition Height="12" />
+                                                            <RowDefinition Height="Auto" />
+                                                        </Grid.RowDefinitions>
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="*" />
+                                                                <ColumnDefinition Width="Auto" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <StackPanel>
+                                                                <TextBlock Text="{Binding DisplayName}" Foreground="{StaticResource StrongTextBrush}" FontSize="20" FontWeight="SemiBold" />
+                                                                <TextBlock Text="{Binding SourceUrl}" Margin="0,6,0,0" Foreground="{StaticResource SubtleBrush}" FontSize="12" TextWrapping="Wrap" />
+                                                            </StackPanel>
+                                                            <TextBlock Grid.Column="1" Text="{Binding Status}" Foreground="{StaticResource SuccessBrush}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                                        </Grid>
+                                                        <ItemsControl Grid.Row="2" ItemsSource="{Binding Videos}">
+                                                            <ItemsControl.ItemsPanel>
+                                                                <ItemsPanelTemplate>
+                                                                    <WrapPanel />
+                                                                </ItemsPanelTemplate>
+                                                            </ItemsControl.ItemsPanel>
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Border Width="300" MinHeight="156" Margin="0,0,12,12" Padding="14" CornerRadius="14" Background="#0F1B2F" BorderBrush="#243C5E" BorderThickness="1">
+                                                                        <Grid>
+                                                                            <Grid.RowDefinitions>
+                                                                                <RowDefinition Height="Auto" />
+                                                                                <RowDefinition Height="*" />
+                                                                                <RowDefinition Height="Auto" />
+                                                                            </Grid.RowDefinitions>
+                                                                            <DockPanel>
+                                                                                <Border DockPanel.Dock="Left" Padding="8,4" Background="#173654" BorderBrush="#2B618F" BorderThickness="1" CornerRadius="999">
+                                                                                    <TextBlock Text="{Binding AgeDisplay}" Foreground="#B8D7FF" FontSize="11" FontWeight="SemiBold" />
+                                                                                </Border>
+                                                                                <TextBlock Text="{Binding FreshBadge}" Margin="8,3,0,0" Foreground="{StaticResource SuccessBrush}" FontSize="11" FontWeight="SemiBold" />
+                                                                            </DockPanel>
+                                                                            <TextBlock Grid.Row="1" Text="{Binding Title}" Margin="0,12,0,12" Foreground="{StaticResource StrongTextBrush}" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                                                            <Grid Grid.Row="2">
+                                                                                <Grid.ColumnDefinitions>
+                                                                                    <ColumnDefinition Width="*" />
+                                                                                    <ColumnDefinition Width="Auto" />
+                                                                                </Grid.ColumnDefinitions>
+                                                                                <TextBlock Text="{Binding PublishedDisplay}" Foreground="{StaticResource SubtleBrush}" FontSize="12" VerticalAlignment="Center" />
+                                                                                <Button Grid.Column="1" Content="播放" Tag="{Binding Url}" Style="{StaticResource MenuButtonStyle}" Margin="8,0,0,0" Click="OpenTubeVideoButton_Click" />
+                                                                            </Grid>
+                                                                        </Grid>
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
                                 </ScrollViewer>
                             </Grid>
                         </Border>
