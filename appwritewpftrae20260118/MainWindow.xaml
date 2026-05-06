@@ -690,17 +690,31 @@
                                                                    TextWrapping="Wrap" />
                                                     </Border>
                                                     <Border Margin="0,18,0,0" Padding="16" Background="#102B24" BorderBrush="#3A8E73" BorderThickness="1" CornerRadius="14" Visibility="{Binding IsFengToolsSelected, Converter={StaticResource BoolToVisibilityConverter}}">
-                                                        <Grid>
-                                                            <Grid.ColumnDefinitions>
-                                                                <ColumnDefinition Width="*" />
-                                                                <ColumnDefinition Width="Auto" />
-                                                            </Grid.ColumnDefinitions>
-                                                            <StackPanel>
-                                                                <TextBlock Text="鋒兄Tube" Foreground="{StaticResource StrongTextBrush}" FontSize="18" FontWeight="SemiBold" />
-                                                                <TextBlock Text="追蹤指定 YouTube 頻道，每個頻道列出最新 10 部，3 天內新片會在首頁提醒。" Margin="0,8,0,0" Foreground="{StaticResource SuccessBrush}" FontSize="13" TextWrapping="Wrap" />
-                                                            </StackPanel>
-                                                            <Button Grid.Column="1" Content="開啟Tube" MinWidth="96" Height="40" Margin="16,0,0,0" Style="{StaticResource PrimaryButtonStyle}" Click="FengTubeMenuButton_Click" />
-                                                        </Grid>
+                                                        <StackPanel>
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="*" />
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <StackPanel>
+                                                                    <TextBlock Text="鋒兄Tube" Foreground="{StaticResource StrongTextBrush}" FontSize="18" FontWeight="SemiBold" />
+                                                                    <TextBlock Text="追蹤指定 YouTube 頻道，每個頻道列出最新 10 部，3 天內新片會在首頁提醒。" Margin="0,8,0,0" Foreground="{StaticResource SuccessBrush}" FontSize="13" TextWrapping="Wrap" />
+                                                                </StackPanel>
+                                                                <Button Grid.Column="1" Content="開啟Tube" MinWidth="96" Height="40" Margin="16,0,0,0" Style="{StaticResource PrimaryButtonStyle}" Click="FengTubeMenuButton_Click" />
+                                                            </Grid>
+                                                            <Border Height="1" Margin="0,14,0,14" Background="#2B6F5C" />
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="*" />
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <StackPanel>
+                                                                    <TextBlock Text="鋒兄金融" Foreground="{StaticResource StrongTextBrush}" FontSize="18" FontWeight="SemiBold" />
+                                                                    <TextBlock Text="追蹤 CNBC 指數、商品、債券與加密貨幣報價，突破本機記錄時標註創新高或創新低。" Margin="0,8,0,0" Foreground="{StaticResource SuccessBrush}" FontSize="13" TextWrapping="Wrap" />
+                                                                </StackPanel>
+                                                                <Button Grid.Column="1" Content="開啟金融" MinWidth="96" Height="40" Margin="16,0,0,0" Style="{StaticResource PrimaryButtonStyle}" Click="FengFinanceMenuButton_Click" />
+                                                            </Grid>
+                                                        </StackPanel>
                                                     </Border>
                                                 </StackPanel>
                                             </Border>
@@ -820,6 +834,62 @@
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
                                 </ScrollViewer>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                    <Grid Visibility="{Binding IsFinanceView, Converter={StaticResource BoolToVisibilityConverter}}">
+                        <Border Style="{StaticResource PanelBorderStyle}" Padding="1" Background="{StaticResource WindowSurfaceBrush}">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                </Grid.RowDefinitions>
+                                <Border Grid.Row="0" Background="#111E33" BorderBrush="#203150" BorderThickness="0,0,0,1" CornerRadius="23,23,0,0" Padding="18,14">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="FENGBRO FINANCE" Foreground="{StaticResource StrongTextBrush}" FontSize="15" FontWeight="SemiBold" />
+                                        <TextBlock Grid.Column="1" Text="{Binding FinanceStatusMessage}" Foreground="#839CC0" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                                <DataGrid Grid.Row="1"
+                                          ItemsSource="{Binding FinancialMarkets}"
+                                          AutoGenerateColumns="False"
+                                          IsReadOnly="True"
+                                          GridLinesVisibility="Horizontal"
+                                          HeadersVisibility="Column"
+                                          RowBackground="#101C31"
+                                          AlternatingRowBackground="#122038"
+                                          Background="{StaticResource WindowSurfaceBrush}"
+                                          Foreground="#E5EDF8"
+                                          HorizontalGridLinesBrush="#1A2A45"
+                                          VerticalGridLinesBrush="#1A2A45"
+                                          BorderThickness="0"
+                                          CanUserAddRows="False"
+                                          CanUserDeleteRows="False"
+                                          CanUserReorderColumns="True"
+                                          CanUserResizeRows="False"
+                                          RowHeight="46"
+                                          ColumnHeaderHeight="42"
+                                          CellStyle="{StaticResource DataGridCellStyle}"
+                                          RowStyle="{StaticResource DataGridRowStyle}"
+                                          ColumnHeaderStyle="{StaticResource DataGridHeaderStyle}"
+                                          SelectionMode="Extended"
+                                          SelectionUnit="FullRow">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="名稱" Binding="{Binding Name}" Width="230" />
+                                        <DataGridTextColumn Header="代號" Binding="{Binding Symbol}" Width="96" />
+                                        <DataGridTextColumn Header="最新" Binding="{Binding LastDisplay}" Width="132" />
+                                        <DataGridTextColumn Header="漲跌" Binding="{Binding ChangeDisplay}" Width="112" />
+                                        <DataGridTextColumn Header="漲跌幅" Binding="{Binding ChangePercentDisplay}" Width="100" />
+                                        <DataGridTextColumn Header="標註" Binding="{Binding HighLowBadge}" Width="110" />
+                                        <DataGridTextColumn Header="狀態" Binding="{Binding Status}" Width="120" />
+                                        <DataGridTextColumn Header="更新" Binding="{Binding LastUpdatedDisplay}" Width="92" />
+                                        <DataGridTextColumn Header="來源" Binding="{Binding SourceUrl}" Width="*" />
+                                    </DataGrid.Columns>
+                                </DataGrid>
                             </Grid>
                         </Border>
                     </Grid>

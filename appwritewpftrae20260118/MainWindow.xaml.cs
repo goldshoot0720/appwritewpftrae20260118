@@ -34,11 +34,13 @@ namespace appwritewpftrae20260118
         private const string LotteryPage = "Lottery";
         private const string FeatureMenuPage = "FeatureMenu";
         private const string FengTubePage = "FengTube";
+        private const string FengFinancePage = "FengFinance";
         private const string LotteryApiBaseUrl = "https://api.taiwanlottery.com/TLCAPIWeB";
         private const int TubeVideoLimitPerChannel = 10;
 
         private readonly HttpClient _httpClient = new HttpClient();
         private readonly string _oilHistoryFilePath;
+        private readonly string _financeStateFilePath;
         private readonly List<LotteryPick> _superLottoPicks = new List<LotteryPick>
         {
             LotteryPick.WithSpecial("第一組", new[] { 7, 11, 23, 32, 33, 38 }, 2),
@@ -77,6 +79,7 @@ namespace appwritewpftrae20260118
         private DateTime _lastNotifyDate = DateTime.MinValue;
         private DateTime _lastOilFetchDate = DateTime.MinValue;
         private DateTime _lastTubeFetchDate = DateTime.MinValue;
+        private DateTime _lastFinanceFetchDate = DateTime.MinValue;
         private string _sleepReminderMessage = string.Empty;
         private Visibility _sleepReminderVisibility = Visibility.Collapsed;
         private Brush _sleepReminderBackground = Brushes.Transparent;
@@ -92,6 +95,7 @@ namespace appwritewpftrae20260118
         private string _voiceCommandSummary = "可說：鋒兄首頁、鋒兄儀表、鋒兄訂閱、鋒兄食品、鋒兄筆記、鋒兄常用、鋒兄圖片、鋒兄影片、鋒兄音樂、鋒兄文件、鋒兄播客、鋒兄銀行、鋒兄例行、鋒兄設定、鋒兄關於、重新整理。聽到後請再說「確認」或「取消」。";
         private string _tubeStatusMessage = "鋒兄Tube 尚未載入";
         private string _tubeFreshAlertMessage = string.Empty;
+        private string _financeStatusMessage = "鋒兄金融尚未載入";
         private Visibility _tubeFreshAlertVisibility = Visibility.Collapsed;
 
         public ObservableCollection<Subscription> Subscriptions { get; } = new ObservableCollection<Subscription>();
@@ -100,6 +104,20 @@ namespace appwritewpftrae20260118
         public ObservableCollection<LotteryResultRow> SuperLottoRows { get; } = new ObservableCollection<LotteryResultRow>();
         public ObservableCollection<LotteryResultRow> Lotto649Rows { get; } = new ObservableCollection<LotteryResultRow>();
         public ObservableCollection<LotteryResultRow> Daily539Rows { get; } = new ObservableCollection<LotteryResultRow>();
+        public ObservableCollection<FinancialMarketItem> FinancialMarkets { get; } = new ObservableCollection<FinancialMarketItem>
+        {
+            new FinancialMarketItem("Nikkei 225 Index", ".N225", "https://www.cnbc.com/quotes/.N225"),
+            new FinancialMarketItem("KOSPI Index", ".KS11", "https://www.cnbc.com/quotes/.KS11?qsearchterm=kospi"),
+            new FinancialMarketItem("ICE Brent Crude", "@LCO.1", "https://www.cnbc.com/quotes/@LCO.1"),
+            new FinancialMarketItem("U.S. 30 Year Treasury", "US30Y", "https://www.cnbc.com/quotes/US30Y"),
+            new FinancialMarketItem("Gold COMEX", "@GC.1", "https://www.cnbc.com/quotes/@GC.1"),
+            new FinancialMarketItem("Dow Jones Industrial Average", ".DJI", "https://www.cnbc.com/quotes/.DJI"),
+            new FinancialMarketItem("S&P 500 Index", ".SPX", "https://www.cnbc.com/quotes/.SPX"),
+            new FinancialMarketItem("NASDAQ Composite", ".IXIC", "https://www.cnbc.com/quotes/.IXIC"),
+            new FinancialMarketItem("CBOE Volatility Index", ".VIX", "https://www.cnbc.com/quotes/.VIX"),
+            new FinancialMarketItem("Bitcoin/USD Coin Metrics", "BTC.CM=", "https://www.cnbc.com/quotes/BTC.CM="),
+            new FinancialMarketItem("Ether/USD Coin Metrics", "ETH.CM=", "https://www.cnbc.com/quotes/ETH.CM=")
+        };
         public ObservableCollection<YouTubeChannelGroup> YouTubeChannels { get; } = new ObservableCollection<YouTubeChannelGroup>
         {
             new YouTubeChannelGroup("SJdiao", "https://www.youtube.com/@SJdiao/videos"),
@@ -147,6 +165,10 @@ namespace appwritewpftrae20260118
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "AppwriteSubscriptionViewer",
                 "oil-marker-history.json");
+            _financeStateFilePath = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "AppwriteSubscriptionViewer",
+                "finance-highlow.json");
             InitializeNotificationIcon();
             _httpClient.Timeout = TimeSpan.FromSeconds(20);
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("AppwriteSubscriptionViewer/1.0");
@@ -197,6 +219,7 @@ namespace appwritewpftrae20260118
         public bool IsLotteryView => string.Equals(_currentPage, LotteryPage, StringComparison.Ordinal);
         public bool IsFeatureMenuView => string.Equals(_currentPage, FeatureMenuPage, StringComparison.Ordinal);
         public bool IsTubeView => string.Equals(_currentPage, FengTubePage, StringComparison.Ordinal);
+        public bool IsFinanceView => string.Equals(_currentPage, FengFinancePage, StringComparison.Ordinal);
         public bool IsFengToolsSelected => IsFeatureMenuView && string.Equals(SelectedFeatureTitle, "鋒兄工具", StringComparison.Ordinal);
 
         public string SelectedFeatureTitle => _selectedFeatureMenuItem?.Title ?? "功能選單";
@@ -258,6 +281,7 @@ namespace appwritewpftrae20260118
                 if (IsOilMonitorView) return "油價追蹤";
                 if (IsFeatureMenuView) return SelectedFeatureTitle;
                 if (IsTubeView) return "鋒兄Tube";
+                if (IsFinanceView) return "鋒兄金融";
                 return "最瞎結婚理由";
             }
         }
@@ -286,6 +310,11 @@ namespace appwritewpftrae20260118
                     return "鋒兄工具子選單，集中追蹤指定 YouTube 頻道，每個頻道顯示最新 10 部影片，3 天內有新片會在首頁提醒。";
                 }
 
+                if (IsFinanceView)
+                {
+                    return "鋒兄工具子選單，追蹤 CNBC 指數、商品、債券與加密貨幣報價，突破本機記錄時標註創新高或創新低。";
+                }
+
                 return "根據台灣彩券官方 API 列出威力彩、大樂透、今彩539近三個月每期號碼，並比對你指定的號碼組。";
             }
         }
@@ -298,6 +327,7 @@ namespace appwritewpftrae20260118
                 if (IsOilMonitorView) return "抓最新牌價";
                 if (IsFeatureMenuView) return "確認選單";
                 if (IsTubeView) return "更新Tube";
+                if (IsFinanceView) return "更新金融";
                 return "更新彩券資料";
             }
         }
@@ -310,6 +340,7 @@ namespace appwritewpftrae20260118
                 if (IsOilMonitorView) return OilStatusMessage;
                 if (IsFeatureMenuView) return $"已選取 {SelectedFeatureTitle}";
                 if (IsTubeView) return TubeStatusMessage;
+                if (IsFinanceView) return FinanceStatusMessage;
                 return LotteryStatusMessage;
             }
         }
@@ -322,6 +353,7 @@ namespace appwritewpftrae20260118
                 if (IsOilMonitorView) return "資料來源：Gulf Mercantile Exchange / OQD Daily Marker Price";
                 if (IsFeatureMenuView) return "選單參考：github.com/goldshoot0720/appwriteandroidtrae";
                 if (IsTubeView) return "資料來源：YouTube channel RSS feeds";
+                if (IsFinanceView) return "資料來源：CNBC Quotes";
                 return "資料來源：台灣彩券官方 API";
             }
         }
@@ -334,6 +366,18 @@ namespace appwritewpftrae20260118
                 if (_tubeStatusMessage == value) return;
                 _tubeStatusMessage = value;
                 OnPropertyChanged(nameof(TubeStatusMessage));
+                OnPropertyChanged(nameof(ActiveStatusMessage));
+            }
+        }
+
+        public string FinanceStatusMessage
+        {
+            get => _financeStatusMessage;
+            set
+            {
+                if (_financeStatusMessage == value) return;
+                _financeStatusMessage = value;
+                OnPropertyChanged(nameof(FinanceStatusMessage));
                 OnPropertyChanged(nameof(ActiveStatusMessage));
             }
         }
@@ -532,6 +576,7 @@ namespace appwritewpftrae20260118
             await RefreshOilDataAsync(forceFetch: false);
             await LoadLotteryDataAsync();
             await LoadFengTubeVideosAsync(showNotification: true);
+            await LoadFengFinanceAsync(showNotification: true);
             await CheckAndNotifyExpiringSubscriptions();
             _lastNotifyDate = DateTime.Today;
             ScheduleDailyTasks();
@@ -713,6 +758,11 @@ namespace appwritewpftrae20260118
                     UpdatePageState();
                     _ = LoadFengTubeVideosAsync(showNotification: true);
                     break;
+                case VoiceCommandAction.FengFinance:
+                    _currentPage = FengFinancePage;
+                    UpdatePageState();
+                    _ = LoadFengFinanceAsync(showNotification: true);
+                    break;
                 case VoiceCommandAction.Feature:
                     ShowFeatureMenu(command.TargetTitle);
                     break;
@@ -751,6 +801,12 @@ namespace appwritewpftrae20260118
             if (IsTubeView)
             {
                 await LoadFengTubeVideosAsync(showNotification: true);
+                return;
+            }
+
+            if (IsFinanceView)
+            {
+                await LoadFengFinanceAsync(showNotification: true);
                 return;
             }
 
@@ -805,6 +861,7 @@ namespace appwritewpftrae20260118
                 VoiceCommand.ForFeature("設定", "開啟鋒兄設定", Expand("鋒兄設定", "設定", "偏好設定", "系統設定", "通知設定", "啟動設定", "語音設定", "本機設定")),
                 VoiceCommand.ForFeature("關於", "開啟鋒兄關於", Expand("鋒兄關於", "關於", "關於鋒兄", "版本資訊", "程式資訊", "維護資訊", "說明頁")),
                 new VoiceCommand(VoiceCommandAction.FengTube, null, "開啟鋒兄Tube", Expand("鋒兄Tube", "鋒兄tube", "Tube", "tube", "YouTube", "youtube", "影片頻道", "頻道追蹤", "最新影片")),
+                new VoiceCommand(VoiceCommandAction.FengFinance, null, "開啟鋒兄金融", Expand("鋒兄金融", "金融", "金融市場", "市場報價", "股市", "指數", "美股", "比特幣", "黃金", "原油")),
                 new VoiceCommand(VoiceCommandAction.Oil, null, "開啟油價追蹤", Expand("油價", "油價追蹤", "鋒兄油價", "汽油", "柴油", "油價圖表", "油價紀錄")),
                 new VoiceCommand(VoiceCommandAction.Lottery, null, "開啟彩券比對", Expand("彩券", "最瞎結婚理由", "樂透", "大樂透", "威力彩", "今彩", "彩券比對")),
                 new VoiceCommand(VoiceCommandAction.Refresh, null, "重新整理目前頁面", Expand("重新整理", "刷新", "更新", "重整", "抓最新", "重新載入", "同步資料", "更新資料")),
@@ -926,6 +983,12 @@ namespace appwritewpftrae20260118
                 return;
             }
 
+            if (IsFinanceView)
+            {
+                await LoadFengFinanceAsync(showNotification: true);
+                return;
+            }
+
             await LoadLotteryDataAsync();
         }
 
@@ -998,6 +1061,16 @@ namespace appwritewpftrae20260118
             }
         }
 
+        private async void FengFinanceMenuButton_Click(object sender, RoutedEventArgs e)
+        {
+            _currentPage = FengFinancePage;
+            UpdatePageState();
+            if (FinancialMarkets.All(item => string.IsNullOrWhiteSpace(item.LastDisplay)))
+            {
+                await LoadFengFinanceAsync(showNotification: true);
+            }
+        }
+
         private void OpenTubeVideoButton_Click(object sender, RoutedEventArgs e)
         {
             if ((sender as FrameworkElement)?.Tag is string url && !string.IsNullOrWhiteSpace(url))
@@ -1021,6 +1094,7 @@ namespace appwritewpftrae20260118
             OnPropertyChanged(nameof(IsLotteryView));
             OnPropertyChanged(nameof(IsFeatureMenuView));
             OnPropertyChanged(nameof(IsTubeView));
+            OnPropertyChanged(nameof(IsFinanceView));
             OnPropertyChanged(nameof(IsFengToolsSelected));
             OnPropertyChanged(nameof(CurrentPageTitle));
             OnPropertyChanged(nameof(CurrentPageSubtitle));
@@ -1097,6 +1171,240 @@ namespace appwritewpftrae20260118
             }
 
             TubeStatusMessage = $"鋒兄Tube 已更新 {loadedChannels}/{YouTubeChannels.Count} 個頻道，時間 {DateTime.Now:HH:mm:ss}";
+        }
+
+        private async Task LoadFengFinanceAsync(bool showNotification)
+        {
+            FinanceStatusMessage = "正在載入鋒兄金融報價...";
+            var state = LoadFinanceHighLowState();
+            var breakoutMessages = new List<string>();
+
+            try
+            {
+                var symbols = string.Join("|", FinancialMarkets.Select(item => item.Symbol));
+                var url = "https://quote.cnbc.com/quote-html-webservice/quote.htm"
+                    + "?noform=1&partnerId=2&fund=1&exthrs=0&output=json&symbolType=symbol&requestMethod=extended&symbols="
+                    + Uri.EscapeDataString(symbols);
+                var json = await _httpClient.GetStringAsync(url);
+                var quoteMap = ParseCnbcQuotes(json);
+                var loadedCount = 0;
+
+                foreach (var item in FinancialMarkets)
+                {
+                    if (!quoteMap.TryGetValue(NormalizeFinanceSymbol(item.Symbol), out var quote))
+                    {
+                        item.Status = "未讀到資料";
+                        continue;
+                    }
+
+                    item.Last = quote.Last;
+                    item.Change = quote.Change;
+                    item.ChangePercent = quote.ChangePercent;
+                    item.LastUpdated = DateTime.Now;
+                    item.Status = "已更新";
+                    loadedCount++;
+
+                    if (quote.Last.HasValue)
+                    {
+                        var badge = UpdateFinanceHighLowState(state, item.Symbol, quote.Last.Value);
+                        item.HighLowBadge = badge;
+                        if (!string.IsNullOrWhiteSpace(badge))
+                        {
+                            breakoutMessages.Add($"{item.Name} {badge} {item.LastDisplay}");
+                        }
+                    }
+                }
+
+                SaveFinanceHighLowState(state);
+                FinanceStatusMessage = $"鋒兄金融已更新 {loadedCount}/{FinancialMarkets.Count} 項，時間 {DateTime.Now:HH:mm:ss}";
+                if (showNotification && breakoutMessages.Count > 0)
+                {
+                    ShowDesktopNotification("鋒兄金融", string.Join("；", breakoutMessages.Take(3)));
+                }
+            }
+            catch (Exception ex)
+            {
+                FinanceStatusMessage = $"鋒兄金融載入失敗：{ex.Message}";
+            }
+        }
+
+        private Dictionary<string, CnbcQuote> ParseCnbcQuotes(string json)
+        {
+            var result = new Dictionary<string, CnbcQuote>(StringComparer.OrdinalIgnoreCase);
+            using (var document = JsonDocument.Parse(json))
+            {
+                foreach (var element in EnumerateJsonObjects(document.RootElement))
+                {
+                    var fields = FlattenJsonObject(element);
+                    if (!TryGetField(fields, out var symbol, "symbol"))
+                    {
+                        continue;
+                    }
+
+                    if (!TryGetDecimalField(fields, out var last, "last", "lastprice", "lasttradeprice", "price"))
+                    {
+                        continue;
+                    }
+
+                    TryGetDecimalField(fields, out var change, "change", "netchange");
+                    TryGetDecimalField(fields, out var changePercent, "changepct", "changepercent", "percentagechange");
+                    result[NormalizeFinanceSymbol(symbol)] = new CnbcQuote(last, change, changePercent);
+                }
+            }
+
+            return result;
+        }
+
+        private static IEnumerable<JsonElement> EnumerateJsonObjects(JsonElement element)
+        {
+            if (element.ValueKind == JsonValueKind.Object)
+            {
+                yield return element;
+                foreach (var property in element.EnumerateObject())
+                {
+                    foreach (var child in EnumerateJsonObjects(property.Value))
+                    {
+                        yield return child;
+                    }
+                }
+            }
+            else if (element.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in element.EnumerateArray())
+                {
+                    foreach (var child in EnumerateJsonObjects(item))
+                    {
+                        yield return child;
+                    }
+                }
+            }
+        }
+
+        private static Dictionary<string, string> FlattenJsonObject(JsonElement element)
+        {
+            var fields = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            void Walk(JsonElement current)
+            {
+                if (current.ValueKind != JsonValueKind.Object)
+                {
+                    return;
+                }
+
+                foreach (var property in current.EnumerateObject())
+                {
+                    var key = NormalizeFinanceField(property.Name);
+                    if (property.Value.ValueKind == JsonValueKind.Object)
+                    {
+                        Walk(property.Value);
+                    }
+                    else if (property.Value.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var item in property.Value.EnumerateArray())
+                        {
+                            Walk(item);
+                        }
+                    }
+                    else if (!fields.ContainsKey(key))
+                    {
+                        fields[key] = property.Value.ToString();
+                    }
+                }
+            }
+
+            Walk(element);
+            return fields;
+        }
+
+        private static bool TryGetField(Dictionary<string, string> fields, out string value, params string[] names)
+        {
+            foreach (var name in names.Select(NormalizeFinanceField))
+            {
+                if (fields.TryGetValue(name, out value) && !string.IsNullOrWhiteSpace(value))
+                {
+                    return true;
+                }
+            }
+
+            value = string.Empty;
+            return false;
+        }
+
+        private static bool TryGetDecimalField(Dictionary<string, string> fields, out decimal value, params string[] names)
+        {
+            value = 0;
+            if (!TryGetField(fields, out var rawValue, names))
+            {
+                return false;
+            }
+
+            rawValue = rawValue.Replace(",", string.Empty).Replace("%", string.Empty).Trim();
+            return decimal.TryParse(rawValue, NumberStyles.Any, CultureInfo.InvariantCulture, out value);
+        }
+
+        private Dictionary<string, FinanceHighLowState> LoadFinanceHighLowState()
+        {
+            try
+            {
+                if (!File.Exists(_financeStateFilePath))
+                {
+                    return new Dictionary<string, FinanceHighLowState>(StringComparer.OrdinalIgnoreCase);
+                }
+
+                var json = File.ReadAllText(_financeStateFilePath);
+                return JsonSerializer.Deserialize<Dictionary<string, FinanceHighLowState>>(json)
+                       ?? new Dictionary<string, FinanceHighLowState>(StringComparer.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return new Dictionary<string, FinanceHighLowState>(StringComparer.OrdinalIgnoreCase);
+            }
+        }
+
+        private void SaveFinanceHighLowState(Dictionary<string, FinanceHighLowState> state)
+        {
+            var directory = System.IO.Path.GetDirectoryName(_financeStateFilePath);
+            if (!Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            var json = JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(_financeStateFilePath, json);
+        }
+
+        private static string UpdateFinanceHighLowState(Dictionary<string, FinanceHighLowState> state, string symbol, decimal last)
+        {
+            var key = NormalizeFinanceSymbol(symbol);
+            if (!state.TryGetValue(key, out var record))
+            {
+                state[key] = new FinanceHighLowState { High = last, Low = last };
+                return string.Empty;
+            }
+
+            var badge = string.Empty;
+            if (last > record.High)
+            {
+                record.High = last;
+                badge = "創新高";
+            }
+
+            if (last < record.Low)
+            {
+                record.Low = last;
+                badge = "創新低";
+            }
+
+            return badge;
+        }
+
+        private static string NormalizeFinanceSymbol(string symbol)
+        {
+            return (symbol ?? string.Empty).Trim().ToUpperInvariant();
+        }
+
+        private static string NormalizeFinanceField(string name)
+        {
+            return Regex.Replace(name ?? string.Empty, @"[^A-Za-z0-9]", string.Empty).ToLowerInvariant();
         }
 
         private async Task<List<YouTubeVideoItem>> FetchYouTubeChannelVideosAsync(string channelUrl)
@@ -1739,6 +2047,15 @@ namespace appwritewpftrae20260118
                     });
                     _lastTubeFetchDate = now.Date;
                 }
+
+                if (now.Hour >= 9 && _lastFinanceFetchDate.Date != now.Date)
+                {
+                    await Application.Current.Dispatcher.InvokeAsync(async () =>
+                    {
+                        await LoadFengFinanceAsync(showNotification: true);
+                    });
+                    _lastFinanceFetchDate = now.Date;
+                }
             };
         }
 
@@ -2035,6 +2352,128 @@ namespace appwritewpftrae20260118
         public ObservableCollection<YouTubeVideoItem> Videos { get; } = new ObservableCollection<YouTubeVideoItem>();
     }
 
+    public class FinancialMarketItem : INotifyPropertyChanged
+    {
+        private decimal? _last;
+        private decimal? _change;
+        private decimal? _changePercent;
+        private string _highLowBadge = string.Empty;
+        private string _status = "等待載入";
+        private DateTime? _lastUpdated;
+
+        public FinancialMarketItem(string name, string symbol, string sourceUrl)
+        {
+            Name = name;
+            Symbol = symbol;
+            SourceUrl = sourceUrl;
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+        public string Name { get; }
+        public string Symbol { get; }
+        public string SourceUrl { get; }
+
+        public decimal? Last
+        {
+            get => _last;
+            set
+            {
+                if (_last == value) return;
+                _last = value;
+                Notify(nameof(Last));
+                Notify(nameof(LastDisplay));
+            }
+        }
+
+        public decimal? Change
+        {
+            get => _change;
+            set
+            {
+                if (_change == value) return;
+                _change = value;
+                Notify(nameof(Change));
+                Notify(nameof(ChangeDisplay));
+            }
+        }
+
+        public decimal? ChangePercent
+        {
+            get => _changePercent;
+            set
+            {
+                if (_changePercent == value) return;
+                _changePercent = value;
+                Notify(nameof(ChangePercent));
+                Notify(nameof(ChangePercentDisplay));
+            }
+        }
+
+        public string HighLowBadge
+        {
+            get => _highLowBadge;
+            set
+            {
+                if (_highLowBadge == value) return;
+                _highLowBadge = value;
+                Notify(nameof(HighLowBadge));
+            }
+        }
+
+        public string Status
+        {
+            get => _status;
+            set
+            {
+                if (_status == value) return;
+                _status = value;
+                Notify(nameof(Status));
+            }
+        }
+
+        public DateTime? LastUpdated
+        {
+            get => _lastUpdated;
+            set
+            {
+                if (_lastUpdated == value) return;
+                _lastUpdated = value;
+                Notify(nameof(LastUpdated));
+                Notify(nameof(LastUpdatedDisplay));
+            }
+        }
+
+        public string LastDisplay => Last.HasValue ? Last.Value.ToString("#,0.####", CultureInfo.InvariantCulture) : "--";
+        public string ChangeDisplay => Change.HasValue ? Change.Value.ToString("+#,0.####;-#,0.####;0", CultureInfo.InvariantCulture) : "--";
+        public string ChangePercentDisplay => ChangePercent.HasValue ? $"{ChangePercent.Value:+0.##;-0.##;0}%" : "--";
+        public string LastUpdatedDisplay => LastUpdated.HasValue ? LastUpdated.Value.ToString("HH:mm:ss") : "--";
+
+        private void Notify(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+
+    internal class CnbcQuote
+    {
+        public CnbcQuote(decimal? last, decimal? change, decimal? changePercent)
+        {
+            Last = last;
+            Change = change;
+            ChangePercent = changePercent;
+        }
+
+        public decimal? Last { get; }
+        public decimal? Change { get; }
+        public decimal? ChangePercent { get; }
+    }
+
+    public class FinanceHighLowState
+    {
+        public decimal High { get; set; }
+        public decimal Low { get; set; }
+    }
+
     public class YouTubeVideoItem
     {
         public string Title { get; set; }
@@ -2078,6 +2517,7 @@ namespace appwritewpftrae20260118
         Oil,
         Lottery,
         FengTube,
+        FengFinance,
         Feature,
         Refresh,
         Help
