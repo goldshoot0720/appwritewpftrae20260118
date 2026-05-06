@@ -116,7 +116,9 @@ namespace appwritewpftrae20260118
             new FinancialMarketItem("NASDAQ Composite", ".IXIC", "https://www.cnbc.com/quotes/.IXIC"),
             new FinancialMarketItem("CBOE Volatility Index", ".VIX", "https://www.cnbc.com/quotes/.VIX"),
             new FinancialMarketItem("Bitcoin/USD Coin Metrics", "BTC.CM=", "https://www.cnbc.com/quotes/BTC.CM="),
-            new FinancialMarketItem("Ether/USD Coin Metrics", "ETH.CM=", "https://www.cnbc.com/quotes/ETH.CM=")
+            new FinancialMarketItem("Ether/USD Coin Metrics", "ETH.CM=", "https://www.cnbc.com/quotes/ETH.CM="),
+            new FinancialMarketItem("加權指數", "^TWII", "https://tw.stock.yahoo.com/s/tse.php", FinancialQuoteProvider.Yahoo),
+            new FinancialMarketItem("台積電", "2330.TW", "https://tw.stock.yahoo.com/quote/2330.TW", FinancialQuoteProvider.Yahoo)
         };
         public ObservableCollection<YouTubeChannelGroup> YouTubeChannels { get; } = new ObservableCollection<YouTubeChannelGroup>
         {
@@ -1181,12 +1183,25 @@ namespace appwritewpftrae20260118
 
             try
             {
-                var symbols = string.Join("|", FinancialMarkets.Select(item => item.Symbol));
-                var url = "https://quote.cnbc.com/quote-html-webservice/quote.htm"
-                    + "?noform=1&partnerId=2&fund=1&exthrs=0&output=json&symbolType=symbol&requestMethod=extended&symbols="
-                    + Uri.EscapeDataString(symbols);
-                var json = await _httpClient.GetStringAsync(url);
-                var quoteMap = ParseCnbcQuotes(json);
+                var cnbcItems = FinancialMarkets.Where(item => item.Provider == FinancialQuoteProvider.Cnbc).ToList();
+                var yahooItems = FinancialMarkets.Where(item => item.Provider == FinancialQuoteProvider.Yahoo).ToList();
+                var symbols = string.Join("|", cnbcItems.Select(item => item.Symbol));
+                var quoteMap = new Dictionary<string, CnbcQuote>(StringComparer.OrdinalIgnoreCase);
+                if (!string.IsNullOrWhiteSpace(symbols))
+                {
+                    var url = "https://quote.cnbc.com/quote-html-webservice/quote.htm"
+                        + "?noform=1&partnerId=2&fund=1&exthrs=0&output=json&symbolType=symbol&requestMethod=extended&symbols="
+                        + Uri.EscapeDataString(symbols);
+                    var json = await _httpClient.GetStringAsync(url);
+                    quoteMap = ParseCnbcQuotes(json);
+                }
+
+                foreach (var item in yahooItems)
+                {
+                    var quote = await FetchYahooQuoteAsync(item.Symbol);
+                    quoteMap[NormalizeFinanceSymbol(item.Symbol)] = quote;
+                }
+
                 var loadedCount = 0;
 
                 foreach (var item in FinancialMarkets)
@@ -1253,6 +1268,49 @@ namespace appwritewpftrae20260118
             }
 
             return result;
+        }
+
+        private async Task<CnbcQuote> FetchYahooQuoteAsync(string symbol)
+        {
+            var url = $"https://query1.finance.yahoo.com/v8/finance/chart/{Uri.EscapeDataString(symbol)}?range=1d&interval=1m";
+            var json = await _httpClient.GetStringAsync(url);
+            using (var document = JsonDocument.Parse(json))
+            {
+                var result = document.RootElement.GetProperty("chart").GetProperty("result")[0];
+                var meta = result.GetProperty("meta");
+                var last = GetOptionalDecimal(meta, "regularMarketPrice");
+                var previousClose = GetOptionalDecimal(meta, "previousClose") ?? GetOptionalDecimal(meta, "chartPreviousClose");
+                decimal? change = null;
+                decimal? changePercent = null;
+                if (last.HasValue && previousClose.HasValue && previousClose.Value != 0)
+                {
+                    change = last.Value - previousClose.Value;
+                    changePercent = change.Value / previousClose.Value * 100;
+                }
+
+                return new CnbcQuote(last, change, changePercent);
+            }
+        }
+
+        private static decimal? GetOptionalDecimal(JsonElement element, string propertyName)
+        {
+            if (!element.TryGetProperty(propertyName, out var property))
+            {
+                return null;
+            }
+
+            if (property.ValueKind == JsonValueKind.Number && property.TryGetDecimal(out var number))
+            {
+                return number;
+            }
+
+            if (property.ValueKind == JsonValueKind.String
+                && decimal.TryParse(property.GetString(), NumberStyles.Any, CultureInfo.InvariantCulture, out var parsed))
+            {
+                return parsed;
+            }
+
+            return null;
         }
 
         private static IEnumerable<JsonElement> EnumerateJsonObjects(JsonElement element)
@@ -2361,17 +2419,19 @@ namespace appwritewpftrae20260118
         private string _status = "等待載入";
         private DateTime? _lastUpdated;
 
-        public FinancialMarketItem(string name, string symbol, string sourceUrl)
+        public FinancialMarketItem(string name, string symbol, string sourceUrl, FinancialQuoteProvider provider = FinancialQuoteProvider.Cnbc)
         {
             Name = name;
             Symbol = symbol;
             SourceUrl = sourceUrl;
+            Provider = provider;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
         public string Name { get; }
         public string Symbol { get; }
         public string SourceUrl { get; }
+        public FinancialQuoteProvider Provider { get; }
 
         public decimal? Last
         {
@@ -2452,6 +2512,12 @@ namespace appwritewpftrae20260118
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
+    }
+
+    public enum FinancialQuoteProvider
+    {
+        Cnbc,
+        Yahoo
     }
 
     internal class CnbcQuote
