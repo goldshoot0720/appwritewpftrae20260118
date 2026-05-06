@@ -103,7 +103,7 @@ namespace appwritewpftrae20260118
         public ObservableCollection<YouTubeChannelGroup> YouTubeChannels { get; } = new ObservableCollection<YouTubeChannelGroup>
         {
             new YouTubeChannelGroup("SJdiao", "https://www.youtube.com/@SJdiao/videos"),
-            new YouTubeChannelGroup("henren778", "https://www.youtube.com/@henren778"),
+            new YouTubeChannelGroup("一个狠人", "https://www.youtube.com/@henren778", watchesFallIndex: true),
             new YouTubeChannelGroup("libertas1984", "https://www.youtube.com/@libertas1984/videos"),
             new YouTubeChannelGroup("sunlao", "https://www.youtube.com/@sunlao/videos"),
             new YouTubeChannelGroup("Torontobigface", "https://www.youtube.com/@Torontobigface/videos"),
@@ -1074,6 +1074,7 @@ namespace appwritewpftrae20260118
                 }
 
                 channel.DisplayName = videos.FirstOrDefault()?.ChannelTitle ?? channel.DisplayName;
+                channel.UpdateBadge = channel.WatchesFallIndex && videos.Any(video => HasFallIndexNumber(video.Title)) ? "更新" : string.Empty;
                 channel.Status = channel.Videos.Count == 0 ? "目前沒有讀到影片" : $"最新 {channel.Videos.Count} 部";
                 freshVideos.AddRange(channel.Videos.Where(video => video.PublishedAt >= DateTimeOffset.Now.AddDays(-3)));
                 loadedChannels++;
@@ -1162,6 +1163,11 @@ namespace appwritewpftrae20260118
             return WebUtility.HtmlDecode(value)
                 .Replace("\\u0026", "&")
                 .Replace("\\/", "/");
+        }
+
+        private static bool HasFallIndexNumber(string title)
+        {
+            return Regex.IsMatch(title ?? string.Empty, @"倒台(指數|指数)\D*\d+", RegexOptions.IgnoreCase);
         }
 
         private async Task LoadSubscriptionsAsync()
@@ -1967,11 +1973,13 @@ namespace appwritewpftrae20260118
     {
         private string _displayName;
         private string _status = "等待載入";
+        private string _updateBadge = string.Empty;
 
-        public YouTubeChannelGroup(string displayName, string sourceUrl)
+        public YouTubeChannelGroup(string displayName, string sourceUrl, bool watchesFallIndex = false)
         {
             _displayName = displayName;
             SourceUrl = sourceUrl;
+            WatchesFallIndex = watchesFallIndex;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -1988,6 +1996,7 @@ namespace appwritewpftrae20260118
         }
 
         public string SourceUrl { get; }
+        public bool WatchesFallIndex { get; }
 
         public string Status
         {
@@ -1999,6 +2008,20 @@ namespace appwritewpftrae20260118
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Status)));
             }
         }
+
+        public string UpdateBadge
+        {
+            get => _updateBadge;
+            set
+            {
+                if (_updateBadge == value) return;
+                _updateBadge = value;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(UpdateBadge)));
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(UpdateBadgeVisibility)));
+            }
+        }
+
+        public Visibility UpdateBadgeVisibility => string.IsNullOrWhiteSpace(UpdateBadge) ? Visibility.Collapsed : Visibility.Visible;
 
         public ObservableCollection<YouTubeVideoItem> Videos { get; } = new ObservableCollection<YouTubeVideoItem>();
     }
