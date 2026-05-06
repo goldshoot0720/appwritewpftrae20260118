@@ -527,12 +527,13 @@ namespace appwritewpftrae20260118
                     ? new SpeechRecognitionEngine()
                     : new SpeechRecognitionEngine(recognizerInfo);
                 _voiceRecognizer.SetInputToDefaultAudioDevice();
-                _voiceRecognizer.LoadGrammar(BuildVoiceGrammar());
+                _voiceRecognizer.LoadGrammar(BuildVoiceGrammar(_voiceRecognizer.RecognizerInfo?.Culture ?? CultureInfo.CurrentCulture));
                 _voiceRecognizer.SpeechRecognized += VoiceRecognizer_SpeechRecognized;
                 _voiceRecognizer.SpeechRecognitionRejected += (_, __) =>
                 {
                     Dispatcher.Invoke(() => VoiceStatusMessage = "沒有聽清楚，請再說一次。");
                 };
+                VoiceCommandSummary = BuildVoiceCommandSummary();
                 VoiceStatusMessage = "語音已就緒，按「開始語音」後可下指令。";
             }
             catch (Exception ex)
@@ -550,7 +551,7 @@ namespace appwritewpftrae20260118
                    ?? recognizers.FirstOrDefault();
         }
 
-        private Grammar BuildVoiceGrammar()
+        private Grammar BuildVoiceGrammar(CultureInfo culture)
         {
             var choices = new Choices();
             foreach (var phrase in BuildVoiceCommands().SelectMany(command => command.Phrases).Distinct(StringComparer.OrdinalIgnoreCase))
@@ -558,15 +559,17 @@ namespace appwritewpftrae20260118
                 choices.Add(phrase);
             }
 
-            choices.Add("確認");
-            choices.Add("確定");
-            choices.Add("好");
-            choices.Add("執行");
-            choices.Add("取消");
-            choices.Add("不要");
-            choices.Add("放棄");
+            foreach (var phrase in ConfirmPhrases.Concat(CancelPhrases))
+            {
+                choices.Add(phrase);
+            }
 
-            return new Grammar(new GrammarBuilder(choices));
+            var builder = new GrammarBuilder(choices)
+            {
+                Culture = culture
+            };
+
+            return new Grammar(builder);
         }
 
         private void VoiceRecognizer_SpeechRecognized(object sender, SpeechRecognizedEventArgs e)
@@ -582,7 +585,7 @@ namespace appwritewpftrae20260118
 
         private void HandleVoicePhrase(string phrase)
         {
-            VoiceLastPhrase = phrase;
+            VoiceLastPhrase = $"聽到：{phrase}";
             var normalized = NormalizeVoicePhrase(phrase);
 
             if (IsConfirmPhrase(normalized))
@@ -603,13 +606,13 @@ namespace appwritewpftrae20260118
                 .FirstOrDefault(item => item.Phrases.Any(candidate => NormalizeVoicePhrase(candidate) == normalized));
             if (command == null)
             {
-                VoiceStatusMessage = "聽到了，但還不是已支援的指令。";
+                VoiceStatusMessage = "聽到了，但還不是已支援的指令。可說「語音說明」查看範例。";
                 return;
             }
 
             _pendingVoiceCommand = command;
             VoicePendingCommandText = $"待確認：{command.Description}";
-            VoiceStatusMessage = "請說「確認」執行，或說「取消」放棄。";
+            VoiceStatusMessage = "已排入雙重確認，請說「確認」執行，或說「取消」放棄。";
         }
 
         private void ExecutePendingVoiceCommand()
@@ -679,29 +682,66 @@ namespace appwritewpftrae20260118
 
         private List<VoiceCommand> BuildVoiceCommands()
         {
+            string[] Expand(params string[] aliases)
+            {
+                var verbs = new[]
+                {
+                    string.Empty,
+                    "開啟",
+                    "打開",
+                    "前往",
+                    "切到",
+                    "進入",
+                    "顯示",
+                    "查看",
+                    "我要看",
+                    "我要開",
+                    "幫我開",
+                    "幫我打開",
+                    "請開",
+                    "請打開",
+                    "帶我去"
+                };
+                return aliases
+                    .Where(alias => !string.IsNullOrWhiteSpace(alias))
+                    .SelectMany(alias => verbs.Select(verb => $"{verb}{alias}"))
+                    .Concat(aliases.Select(alias => $"鋒兄{alias}"))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToArray();
+            }
+
             return new List<VoiceCommand>
             {
-                VoiceCommand.ForFeature("鋒兄首頁", "開啟鋒兄首頁", "鋒兄首頁", "首頁", "開啟首頁", "回首頁", "主畫面", "回主畫面"),
-                VoiceCommand.ForFeature("鋒兄儀表", "開啟鋒兄儀表", "鋒兄儀表", "儀表", "儀表板", "開啟儀表", "開啟儀表板", "dashboard"),
-                new VoiceCommand(VoiceCommandAction.Subscription, null, "開啟鋒兄訂閱", "鋒兄訂閱", "訂閱", "訂閱提醒", "開啟訂閱", "開啟訂閱提醒", "訂閱到期"),
-                VoiceCommand.ForFeature("美食管理", "開啟鋒兄食品", "鋒兄食品", "食品", "美食", "美食管理", "開啟食品", "開啟美食"),
-                VoiceCommand.ForFeature("鋒兄筆記", "開啟鋒兄筆記", "鋒兄筆記", "筆記", "開啟筆記", "文章", "鋒兄文章"),
-                VoiceCommand.ForFeature("常用帳號", "開啟鋒兄常用", "鋒兄常用", "常用", "常用帳號", "開啟常用", "開啟常用帳號"),
-                VoiceCommand.ForFeature("圖片管理", "開啟鋒兄圖片", "鋒兄圖片", "圖片", "圖片管理", "開啟圖片", "相簿"),
-                VoiceCommand.ForFeature("影片管理", "開啟鋒兄影片", "鋒兄影片", "影片", "影片管理", "開啟影片", "視頻"),
-                VoiceCommand.ForFeature("音樂管理", "開啟鋒兄音樂", "鋒兄音樂", "音樂", "音樂管理", "開啟音樂", "歌曲"),
-                VoiceCommand.ForFeature("文件管理", "開啟鋒兄文件", "鋒兄文件", "文件", "文件管理", "開啟文件", "文檔"),
-                VoiceCommand.ForFeature("播客管理", "開啟鋒兄播客", "鋒兄播客", "播客", "Podcast", "podcast", "開啟播客"),
-                VoiceCommand.ForFeature("銀行統計", "開啟鋒兄銀行", "鋒兄銀行", "銀行", "銀行統計", "開啟銀行"),
-                VoiceCommand.ForFeature("例行事項", "開啟鋒兄例行", "鋒兄例行", "例行", "例行事項", "routine", "開啟例行"),
-                VoiceCommand.ForFeature("設定", "開啟鋒兄設定", "鋒兄設定", "設定", "開啟設定", "偏好設定"),
-                VoiceCommand.ForFeature("關於", "開啟鋒兄關於", "鋒兄關於", "關於", "開啟關於", "關於鋒兄"),
-                new VoiceCommand(VoiceCommandAction.Oil, null, "開啟油價追蹤", "油價", "油價追蹤", "開啟油價", "鋒兄油價"),
-                new VoiceCommand(VoiceCommandAction.Lottery, null, "開啟彩券比對", "彩券", "最瞎結婚理由", "開啟彩券", "樂透"),
-                new VoiceCommand(VoiceCommandAction.Refresh, null, "重新整理目前頁面", "重新整理", "刷新", "更新", "重整", "抓最新"),
-                new VoiceCommand(VoiceCommandAction.Help, null, "顯示語音說明", "語音說明", "語音幫助", "指令說明", "可以說什麼")
+                VoiceCommand.ForFeature("鋒兄首頁", "開啟鋒兄首頁", Expand("鋒兄首頁", "首頁", "主畫面", "主頁", "首頁入口", "桌面控制台", "控制台", "回首頁", "回主畫面")),
+                VoiceCommand.ForFeature("鋒兄儀表", "開啟鋒兄儀表", Expand("鋒兄儀表", "儀表", "儀表板", "dashboard", "總覽", "狀態總覽", "數據總覽", "統計總覽")),
+                new VoiceCommand(VoiceCommandAction.Subscription, null, "開啟鋒兄訂閱", Expand("鋒兄訂閱", "訂閱", "訂閱提醒", "訂閱到期", "到期提醒", "付款提醒", "扣款提醒", "月費", "會員訂閱")),
+                VoiceCommand.ForFeature("美食管理", "開啟鋒兄食品", Expand("鋒兄食品", "食品", "食物", "美食", "美食管理", "食物庫存", "食品庫存", "吃的", "餐點", "食材")),
+                VoiceCommand.ForFeature("鋒兄筆記", "開啟鋒兄筆記", Expand("鋒兄筆記", "筆記", "記事", "文章", "鋒兄文章", "文字筆記", "備忘錄", "知識庫", "靈感")),
+                VoiceCommand.ForFeature("常用帳號", "開啟鋒兄常用", Expand("鋒兄常用", "常用", "常用帳號", "帳號", "網站帳號", "常用網站", "登入資料", "帳密入口")),
+                VoiceCommand.ForFeature("圖片管理", "開啟鋒兄圖片", Expand("鋒兄圖片", "圖片", "圖片管理", "相簿", "照片", "圖庫", "影像", "圖片庫", "照片庫")),
+                VoiceCommand.ForFeature("影片管理", "開啟鋒兄影片", Expand("鋒兄影片", "影片", "影片管理", "視頻", "影片庫", "片單", "追劇", "短片", "影音")),
+                VoiceCommand.ForFeature("音樂管理", "開啟鋒兄音樂", Expand("鋒兄音樂", "音樂", "音樂管理", "歌曲", "歌單", "播放清單", "專輯", "音樂庫", "聲音收藏")),
+                VoiceCommand.ForFeature("文件管理", "開啟鋒兄文件", Expand("鋒兄文件", "文件", "文件管理", "文檔", "檔案", "資料夾", "文件庫", "合約", "報告")),
+                VoiceCommand.ForFeature("播客管理", "開啟鋒兄播客", Expand("鋒兄播客", "播客", "Podcast", "podcast", "節目", "節目清單", "收聽清單", "音頻節目")),
+                VoiceCommand.ForFeature("銀行統計", "開啟鋒兄銀行", Expand("鋒兄銀行", "銀行", "銀行統計", "帳戶", "存款", "提款", "轉帳", "財務", "卡片", "錢包")),
+                VoiceCommand.ForFeature("例行事項", "開啟鋒兄例行", Expand("鋒兄例行", "例行", "例行事項", "routine", "日常", "每日任務", "固定任務", "習慣", "待辦")),
+                VoiceCommand.ForFeature("設定", "開啟鋒兄設定", Expand("鋒兄設定", "設定", "偏好設定", "系統設定", "通知設定", "啟動設定", "語音設定", "本機設定")),
+                VoiceCommand.ForFeature("關於", "開啟鋒兄關於", Expand("鋒兄關於", "關於", "關於鋒兄", "版本資訊", "程式資訊", "維護資訊", "說明頁")),
+                new VoiceCommand(VoiceCommandAction.Oil, null, "開啟油價追蹤", Expand("油價", "油價追蹤", "鋒兄油價", "汽油", "柴油", "油價圖表", "油價紀錄")),
+                new VoiceCommand(VoiceCommandAction.Lottery, null, "開啟彩券比對", Expand("彩券", "最瞎結婚理由", "樂透", "大樂透", "威力彩", "今彩", "彩券比對")),
+                new VoiceCommand(VoiceCommandAction.Refresh, null, "重新整理目前頁面", Expand("重新整理", "刷新", "更新", "重整", "抓最新", "重新載入", "同步資料", "更新資料")),
+                new VoiceCommand(VoiceCommandAction.Help, null, "顯示語音說明", Expand("語音說明", "語音幫助", "指令說明", "可以說什麼", "語音指令", "語音範例", "幫助"))
             };
         }
+
+        private string BuildVoiceCommandSummary()
+        {
+            var commandCount = BuildVoiceCommands().Sum(command => command.Phrases.Count);
+            return $"可說首頁、儀表、訂閱、食品、筆記、常用、圖片、影片、音樂、文件、播客、銀行、例行、設定、關於，也可說重新整理、語音說明。已載入 {commandCount} 種說法；聽到後請再說「確認」或「取消」。";
+        }
+
+        private static readonly string[] ConfirmPhrases = { "確認", "確定", "好", "好的", "可以", "執行", "開始", "沒錯", "對", "是", "同意" };
+        private static readonly string[] CancelPhrases = { "取消", "不要", "放棄", "停止", "算了", "不是", "否", "不用", "先不要" };
 
         private static string NormalizeVoicePhrase(string value)
         {
@@ -710,12 +750,12 @@ namespace appwritewpftrae20260118
 
         private static bool IsConfirmPhrase(string value)
         {
-            return value == "確認" || value == "確定" || value == "好" || value == "執行";
+            return ConfirmPhrases.Any(phrase => NormalizeVoicePhrase(phrase) == value);
         }
 
         private static bool IsCancelPhrase(string value)
         {
-            return value == "取消" || value == "不要" || value == "放棄";
+            return CancelPhrases.Any(phrase => NormalizeVoicePhrase(phrase) == value);
         }
 
         private void VoiceToggleButton_Click(object sender, RoutedEventArgs e)
