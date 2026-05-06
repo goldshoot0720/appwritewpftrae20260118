@@ -1074,7 +1074,7 @@ namespace appwritewpftrae20260118
                 }
 
                 channel.DisplayName = videos.FirstOrDefault()?.ChannelTitle ?? channel.DisplayName;
-                channel.UpdateBadge = channel.WatchesFallIndex && videos.Any(video => HasFallIndexNumber(video.Title)) ? "更新" : string.Empty;
+                channel.UpdateBadge = channel.WatchesFallIndex ? BuildFallIndexUpdateBadge(videos) : string.Empty;
                 channel.Status = channel.Videos.Count == 0 ? "目前沒有讀到影片" : $"最新 {channel.Videos.Count} 部";
                 freshVideos.AddRange(channel.Videos.Where(video => video.PublishedAt >= DateTimeOffset.Now.AddDays(-3)));
                 loadedChannels++;
@@ -1165,9 +1165,18 @@ namespace appwritewpftrae20260118
                 .Replace("\\/", "/");
         }
 
-        private static bool HasFallIndexNumber(string title)
+        private static string BuildFallIndexUpdateBadge(IEnumerable<YouTubeVideoItem> videos)
         {
-            return Regex.IsMatch(title ?? string.Empty, @"倒台(指數|指数)\D*\d+", RegexOptions.IgnoreCase);
+            foreach (var video in videos)
+            {
+                var match = Regex.Match(video.Title ?? string.Empty, @"倒台(指數|指数)\D*(?<value>\d+(?:[.．]\d+)?)", RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    return $"更新 {match.Groups["value"].Value.Replace('．', '.')}";
+                }
+            }
+
+            return string.Empty;
         }
 
         private async Task LoadSubscriptionsAsync()
