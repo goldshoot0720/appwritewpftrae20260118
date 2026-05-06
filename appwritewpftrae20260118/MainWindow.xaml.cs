@@ -1,5 +1,6 @@
 ﻿using Appwrite;
 using Appwrite.Services;
+using Microsoft.Toolkit.Uwp.Notifications;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -10,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Speech.Recognition;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -77,6 +79,13 @@ namespace appwritewpftrae20260118
         private Brush _sleepReminderBorderBrush = Brushes.Transparent;
         private Brush _sleepReminderForeground = Brushes.White;
         private DispatcherTimer _sleepReminderTimer;
+        private SpeechRecognitionEngine _voiceRecognizer;
+        private VoiceCommand _pendingVoiceCommand;
+        private bool _isVoiceListening;
+        private string _voiceStatusMessage = "語音輸入尚未啟動";
+        private string _voiceLastPhrase = "尚未收到語音";
+        private string _voicePendingCommandText = "沒有待確認指令";
+        private string _voiceCommandSummary = "可說：鋒兄首頁、鋒兄儀表、鋒兄訂閱、鋒兄食品、鋒兄筆記、鋒兄常用、鋒兄圖片、鋒兄影片、鋒兄音樂、鋒兄文件、鋒兄播客、鋒兄銀行、鋒兄例行、鋒兄設定、鋒兄關於、重新整理。聽到後請再說「確認」或「取消」。";
 
         public ObservableCollection<Subscription> Subscriptions { get; } = new ObservableCollection<Subscription>();
         public ObservableCollection<OilPriceRecord> OilPriceHistory { get; } = new ObservableCollection<OilPriceRecord>();
@@ -93,7 +102,17 @@ namespace appwritewpftrae20260118
             new FeatureMenuItem("US Debt", "US DEBT", "追蹤美國國債數值與歷史趨勢。", "USDebtActivity"),
             new FeatureMenuItem("鋒兄比價", "PRICE COMPARE", "銜接 Android 的 PChome / momo 價格比較工具。", "PriceCompareActivity"),
             new FeatureMenuItem("電池狀態", "BATTERY", "顯示電池目前狀態、預估時間與最後充滿資訊。", "BatteryStatusActivity"),
-            new FeatureMenuItem("鋒兄工具", "FENGBRO TOOLS", "工具集合入口，包含比價與手機比較等 Android 功能。", "FengToolsActivity")
+            new FeatureMenuItem("鋒兄工具", "FENGBRO TOOLS", "工具集合入口，包含比價與手機比較等 Android 功能。", "FengToolsActivity"),
+            new FeatureMenuItem("鋒兄首頁", "HOME", "集中啟動常用模組，快速回到桌面控制台的入口語音頁。", "MainActivity"),
+            new FeatureMenuItem("鋒兄儀表", "DASHBOARD", "以儀表板方式整理訂閱、油價、彩券、銀行、食品與媒體模組。", "DashboardActivity"),
+            new FeatureMenuItem("圖片管理", "IMAGE", "預留圖片 collection 的搜尋、檢視、分類與語音建立入口。", "ImageActivity"),
+            new FeatureMenuItem("影片管理", "VIDEO", "預留影片 collection 的片名、平台、連結、標籤與播放狀態入口。", "VideoActivity"),
+            new FeatureMenuItem("音樂管理", "MUSIC", "預留音樂 collection 的歌曲、專輯、播放清單與靈感筆記入口。", "MusicActivity"),
+            new FeatureMenuItem("文件管理", "DOCUMENT", "預留文件 collection 的標題、分類、連結、摘要與查找入口。", "DocumentActivity"),
+            new FeatureMenuItem("播客管理", "PODCAST", "預留播客 collection 的節目、集數、重點、連結與收聽狀態入口。", "PodcastActivity"),
+            new FeatureMenuItem("例行事項", "ROUTINE", "預留 routine collection 的日常任務、週期、提醒與完成狀態入口。", "RoutineActivity"),
+            new FeatureMenuItem("設定", "SETTINGS", "整理啟動、通知、資料來源、語音輸入與本機偏好設定。", "SettingsActivity"),
+            new FeatureMenuItem("關於", "ABOUT", "顯示桌面控制台版本、資料來源、語音指令與維護資訊。", "AboutActivity")
         };
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -113,6 +132,7 @@ namespace appwritewpftrae20260118
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("AppwriteSubscriptionViewer/1.0");
             UpdateBirthdayEasterEgg();
             InitializeSleepReminderTimer();
+            InitializeVoiceInput();
             UpdatePageState();
         }
 
@@ -161,6 +181,52 @@ namespace appwritewpftrae20260118
         public string SelectedFeatureEyebrow => _selectedFeatureMenuItem?.Eyebrow ?? "ANDROID MENU";
         public string SelectedFeatureDescription => _selectedFeatureMenuItem?.Description ?? "參考 Android appwriteandroidtrae 的主畫面選單。";
         public string SelectedFeatureActivity => _selectedFeatureMenuItem?.ActivityName ?? "MainActivity";
+
+        public string VoiceStatusMessage
+        {
+            get => _voiceStatusMessage;
+            set
+            {
+                if (_voiceStatusMessage == value) return;
+                _voiceStatusMessage = value;
+                OnPropertyChanged(nameof(VoiceStatusMessage));
+            }
+        }
+
+        public string VoiceLastPhrase
+        {
+            get => _voiceLastPhrase;
+            set
+            {
+                if (_voiceLastPhrase == value) return;
+                _voiceLastPhrase = value;
+                OnPropertyChanged(nameof(VoiceLastPhrase));
+            }
+        }
+
+        public string VoicePendingCommandText
+        {
+            get => _voicePendingCommandText;
+            set
+            {
+                if (_voicePendingCommandText == value) return;
+                _voicePendingCommandText = value;
+                OnPropertyChanged(nameof(VoicePendingCommandText));
+            }
+        }
+
+        public string VoiceCommandSummary
+        {
+            get => _voiceCommandSummary;
+            set
+            {
+                if (_voiceCommandSummary == value) return;
+                _voiceCommandSummary = value;
+                OnPropertyChanged(nameof(VoiceCommandSummary));
+            }
+        }
+
+        public string VoiceToggleLabel => _isVoiceListening ? "停止語音" : "開始語音";
 
         public string CurrentPageTitle
         {
@@ -450,6 +516,242 @@ namespace appwritewpftrae20260118
 
             SleepReminderMessage = string.Empty;
             SleepReminderVisibility = Visibility.Collapsed;
+        }
+
+        private void InitializeVoiceInput()
+        {
+            try
+            {
+                var recognizerInfo = SelectVoiceRecognizer();
+                _voiceRecognizer = recognizerInfo == null
+                    ? new SpeechRecognitionEngine()
+                    : new SpeechRecognitionEngine(recognizerInfo);
+                _voiceRecognizer.SetInputToDefaultAudioDevice();
+                _voiceRecognizer.LoadGrammar(BuildVoiceGrammar());
+                _voiceRecognizer.SpeechRecognized += VoiceRecognizer_SpeechRecognized;
+                _voiceRecognizer.SpeechRecognitionRejected += (_, __) =>
+                {
+                    Dispatcher.Invoke(() => VoiceStatusMessage = "沒有聽清楚，請再說一次。");
+                };
+                VoiceStatusMessage = "語音已就緒，按「開始語音」後可下指令。";
+            }
+            catch (Exception ex)
+            {
+                VoiceStatusMessage = $"語音初始化失敗：{ex.Message}";
+            }
+        }
+
+        private static RecognizerInfo SelectVoiceRecognizer()
+        {
+            var recognizers = SpeechRecognitionEngine.InstalledRecognizers();
+            return recognizers.FirstOrDefault(info => info.Culture.Name.Equals("zh-TW", StringComparison.OrdinalIgnoreCase))
+                   ?? recognizers.FirstOrDefault(info => info.Culture.TwoLetterISOLanguageName.Equals("zh", StringComparison.OrdinalIgnoreCase))
+                   ?? recognizers.FirstOrDefault(info => info.Culture.Equals(CultureInfo.CurrentCulture))
+                   ?? recognizers.FirstOrDefault();
+        }
+
+        private Grammar BuildVoiceGrammar()
+        {
+            var choices = new Choices();
+            foreach (var phrase in BuildVoiceCommands().SelectMany(command => command.Phrases).Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                choices.Add(phrase);
+            }
+
+            choices.Add("確認");
+            choices.Add("確定");
+            choices.Add("好");
+            choices.Add("執行");
+            choices.Add("取消");
+            choices.Add("不要");
+            choices.Add("放棄");
+
+            return new Grammar(new GrammarBuilder(choices));
+        }
+
+        private void VoiceRecognizer_SpeechRecognized(object sender, SpeechRecognizedEventArgs e)
+        {
+            if (e.Result == null || e.Result.Confidence < 0.45)
+            {
+                Dispatcher.Invoke(() => VoiceStatusMessage = "語音信心不足，請靠近一點再說。");
+                return;
+            }
+
+            Dispatcher.Invoke(() => HandleVoicePhrase(e.Result.Text));
+        }
+
+        private void HandleVoicePhrase(string phrase)
+        {
+            VoiceLastPhrase = phrase;
+            var normalized = NormalizeVoicePhrase(phrase);
+
+            if (IsConfirmPhrase(normalized))
+            {
+                ExecutePendingVoiceCommand();
+                return;
+            }
+
+            if (IsCancelPhrase(normalized))
+            {
+                _pendingVoiceCommand = null;
+                VoicePendingCommandText = "已取消，沒有待確認指令";
+                VoiceStatusMessage = "語音指令已取消。";
+                return;
+            }
+
+            var command = BuildVoiceCommands()
+                .FirstOrDefault(item => item.Phrases.Any(candidate => NormalizeVoicePhrase(candidate) == normalized));
+            if (command == null)
+            {
+                VoiceStatusMessage = "聽到了，但還不是已支援的指令。";
+                return;
+            }
+
+            _pendingVoiceCommand = command;
+            VoicePendingCommandText = $"待確認：{command.Description}";
+            VoiceStatusMessage = "請說「確認」執行，或說「取消」放棄。";
+        }
+
+        private void ExecutePendingVoiceCommand()
+        {
+            if (_pendingVoiceCommand == null)
+            {
+                VoiceStatusMessage = "目前沒有待確認的語音指令。";
+                return;
+            }
+
+            var command = _pendingVoiceCommand;
+            _pendingVoiceCommand = null;
+            VoicePendingCommandText = "沒有待確認指令";
+
+            switch (command.Action)
+            {
+                case VoiceCommandAction.Subscription:
+                    _currentPage = SubscriptionPage;
+                    UpdatePageState();
+                    break;
+                case VoiceCommandAction.Oil:
+                    _currentPage = OilMonitorPage;
+                    UpdatePageState();
+                    RenderOilPriceChart();
+                    break;
+                case VoiceCommandAction.Lottery:
+                    _currentPage = LotteryPage;
+                    UpdatePageState();
+                    break;
+                case VoiceCommandAction.Feature:
+                    ShowFeatureMenu(command.TargetTitle);
+                    break;
+                case VoiceCommandAction.Refresh:
+                    _ = RefreshCurrentViewFromVoiceAsync();
+                    break;
+                case VoiceCommandAction.Help:
+                    VoiceStatusMessage = VoiceCommandSummary;
+                    return;
+            }
+
+            VoiceStatusMessage = $"已執行：{command.Description}";
+        }
+
+        private async Task RefreshCurrentViewFromVoiceAsync()
+        {
+            if (IsSubscriptionView)
+            {
+                await LoadSubscriptionsAsync();
+                await CheckAndNotifyExpiringSubscriptions();
+                return;
+            }
+
+            if (IsOilMonitorView)
+            {
+                await RefreshOilDataAsync(forceFetch: true);
+                return;
+            }
+
+            if (IsLotteryView)
+            {
+                await LoadLotteryDataAsync();
+                return;
+            }
+
+            VoiceStatusMessage = $"已確認 {SelectedFeatureTitle}，此頁目前是語音入口頁。";
+        }
+
+        private List<VoiceCommand> BuildVoiceCommands()
+        {
+            return new List<VoiceCommand>
+            {
+                VoiceCommand.ForFeature("鋒兄首頁", "開啟鋒兄首頁", "鋒兄首頁", "首頁", "開啟首頁", "回首頁", "主畫面", "回主畫面"),
+                VoiceCommand.ForFeature("鋒兄儀表", "開啟鋒兄儀表", "鋒兄儀表", "儀表", "儀表板", "開啟儀表", "開啟儀表板", "dashboard"),
+                new VoiceCommand(VoiceCommandAction.Subscription, null, "開啟鋒兄訂閱", "鋒兄訂閱", "訂閱", "訂閱提醒", "開啟訂閱", "開啟訂閱提醒", "訂閱到期"),
+                VoiceCommand.ForFeature("美食管理", "開啟鋒兄食品", "鋒兄食品", "食品", "美食", "美食管理", "開啟食品", "開啟美食"),
+                VoiceCommand.ForFeature("鋒兄筆記", "開啟鋒兄筆記", "鋒兄筆記", "筆記", "開啟筆記", "文章", "鋒兄文章"),
+                VoiceCommand.ForFeature("常用帳號", "開啟鋒兄常用", "鋒兄常用", "常用", "常用帳號", "開啟常用", "開啟常用帳號"),
+                VoiceCommand.ForFeature("圖片管理", "開啟鋒兄圖片", "鋒兄圖片", "圖片", "圖片管理", "開啟圖片", "相簿"),
+                VoiceCommand.ForFeature("影片管理", "開啟鋒兄影片", "鋒兄影片", "影片", "影片管理", "開啟影片", "視頻"),
+                VoiceCommand.ForFeature("音樂管理", "開啟鋒兄音樂", "鋒兄音樂", "音樂", "音樂管理", "開啟音樂", "歌曲"),
+                VoiceCommand.ForFeature("文件管理", "開啟鋒兄文件", "鋒兄文件", "文件", "文件管理", "開啟文件", "文檔"),
+                VoiceCommand.ForFeature("播客管理", "開啟鋒兄播客", "鋒兄播客", "播客", "Podcast", "podcast", "開啟播客"),
+                VoiceCommand.ForFeature("銀行統計", "開啟鋒兄銀行", "鋒兄銀行", "銀行", "銀行統計", "開啟銀行"),
+                VoiceCommand.ForFeature("例行事項", "開啟鋒兄例行", "鋒兄例行", "例行", "例行事項", "routine", "開啟例行"),
+                VoiceCommand.ForFeature("設定", "開啟鋒兄設定", "鋒兄設定", "設定", "開啟設定", "偏好設定"),
+                VoiceCommand.ForFeature("關於", "開啟鋒兄關於", "鋒兄關於", "關於", "開啟關於", "關於鋒兄"),
+                new VoiceCommand(VoiceCommandAction.Oil, null, "開啟油價追蹤", "油價", "油價追蹤", "開啟油價", "鋒兄油價"),
+                new VoiceCommand(VoiceCommandAction.Lottery, null, "開啟彩券比對", "彩券", "最瞎結婚理由", "開啟彩券", "樂透"),
+                new VoiceCommand(VoiceCommandAction.Refresh, null, "重新整理目前頁面", "重新整理", "刷新", "更新", "重整", "抓最新"),
+                new VoiceCommand(VoiceCommandAction.Help, null, "顯示語音說明", "語音說明", "語音幫助", "指令說明", "可以說什麼")
+            };
+        }
+
+        private static string NormalizeVoicePhrase(string value)
+        {
+            return (value ?? string.Empty).Trim().Replace(" ", string.Empty).ToLowerInvariant();
+        }
+
+        private static bool IsConfirmPhrase(string value)
+        {
+            return value == "確認" || value == "確定" || value == "好" || value == "執行";
+        }
+
+        private static bool IsCancelPhrase(string value)
+        {
+            return value == "取消" || value == "不要" || value == "放棄";
+        }
+
+        private void VoiceToggleButton_Click(object sender, RoutedEventArgs e)
+        {
+            ToggleVoiceListening();
+        }
+
+        private void ToggleVoiceListening()
+        {
+            if (_voiceRecognizer == null)
+            {
+                VoiceStatusMessage = "語音辨識尚未可用，請確認 Windows 語音元件與麥克風。";
+                return;
+            }
+
+            try
+            {
+                if (_isVoiceListening)
+                {
+                    _voiceRecognizer.RecognizeAsyncStop();
+                    _isVoiceListening = false;
+                    VoiceStatusMessage = "語音輸入已停止。";
+                }
+                else
+                {
+                    _voiceRecognizer.RecognizeAsync(RecognizeMode.Multiple);
+                    _isVoiceListening = true;
+                    VoiceStatusMessage = "正在聆聽，請說功能名稱，接著說「確認」。";
+                }
+
+                OnPropertyChanged(nameof(VoiceToggleLabel));
+            }
+            catch (Exception ex)
+            {
+                VoiceStatusMessage = $"語音切換失敗：{ex.Message}";
+            }
         }
 
         private void UpdateBirthdayEasterEgg()
@@ -1200,11 +1502,37 @@ namespace appwritewpftrae20260118
 
                 foreach (var message in messages)
                 {
-                    _notifyIcon.BalloonTipTitle = "訂閱到期提醒";
-                    _notifyIcon.BalloonTipText = message;
-                    _notifyIcon.ShowBalloonTip(5000);
+                    ShowDesktopNotification("訂閱到期提醒", message);
                     await Task.Delay(3500);
                 }
+            }
+            catch
+            {
+            }
+        }
+
+        private void ShowDesktopNotification(string title, string message)
+        {
+            try
+            {
+                new ToastContentBuilder()
+                    .AddText(title)
+                    .AddText(message)
+                    .Show();
+                return;
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    _notifyIcon.BalloonTipTitle = title;
+                    _notifyIcon.BalloonTipText = message;
+                    _notifyIcon.ShowBalloonTip(5000);
+                });
             }
             catch
             {
@@ -1348,6 +1676,37 @@ namespace appwritewpftrae20260118
         public string Eyebrow { get; }
         public string Description { get; }
         public string ActivityName { get; }
+    }
+
+    internal enum VoiceCommandAction
+    {
+        Subscription,
+        Oil,
+        Lottery,
+        Feature,
+        Refresh,
+        Help
+    }
+
+    internal class VoiceCommand
+    {
+        public VoiceCommand(VoiceCommandAction action, string targetTitle, string description, params string[] phrases)
+        {
+            Action = action;
+            TargetTitle = targetTitle;
+            Description = description;
+            Phrases = phrases.ToList();
+        }
+
+        public VoiceCommandAction Action { get; }
+        public string TargetTitle { get; }
+        public string Description { get; }
+        public List<string> Phrases { get; }
+
+        public static VoiceCommand ForFeature(string targetTitle, string description, params string[] phrases)
+        {
+            return new VoiceCommand(VoiceCommandAction.Feature, targetTitle, description, phrases);
+        }
     }
 
     internal class LotteryDrawResult

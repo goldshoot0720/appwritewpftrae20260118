@@ -222,6 +222,22 @@
                                                FontWeight="SemiBold"
                                                TextWrapping="Wrap" />
                                 </Border>
+                                <Border Margin="0,12,0,0" Padding="14" Background="#101D31" BorderBrush="#2B466A" BorderThickness="1" CornerRadius="14">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel>
+                                            <TextBlock Text="鋒兄語音輸入" Foreground="{StaticResource StrongTextBrush}" FontSize="14" FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding VoiceStatusMessage}" Margin="0,6,0,0" Foreground="#C0D2F1" FontSize="12" TextWrapping="Wrap" />
+                                            <TextBlock Text="{Binding VoiceLastPhrase}" Margin="0,6,0,0" Foreground="{StaticResource SubtleBrush}" FontSize="12" TextWrapping="Wrap" />
+                                            <TextBlock Text="{Binding VoicePendingCommandText}" Margin="0,6,0,0" Foreground="{StaticResource SuccessBrush}" FontSize="12" FontWeight="SemiBold" TextWrapping="Wrap" />
+                                            <TextBlock Text="{Binding VoiceCommandSummary}" Margin="0,8,0,0" Foreground="#7F9BC4" FontSize="11" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                        <Button Grid.Column="1" Content="{Binding VoiceToggleLabel}" MinWidth="96" Height="38" Margin="14,0,0,0" Style="{StaticResource MenuButtonStyle}" Click="VoiceToggleButton_Click" />
+                                    </Grid>
+                                </Border>
                             </StackPanel>
                             <Border Grid.Column="1" CornerRadius="22" Background="#14253E" BorderBrush="#29456B" BorderThickness="1" Padding="18">
                                 <Grid>
