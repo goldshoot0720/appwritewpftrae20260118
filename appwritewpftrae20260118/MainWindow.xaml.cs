@@ -135,7 +135,7 @@ namespace appwritewpftrae20260118
         };
         public ObservableCollection<FeatureMenuItem> FeatureMenuItems { get; } = new ObservableCollection<FeatureMenuItem>
         {
-            new FeatureMenuItem("鋒兄銀行 (+電子票證)", "BANKING", "整理 Appwrite bank collection，查看存款、提款、轉帳與卡片資訊。", "BankStatsActivity"),
+            new FeatureMenuItem("鋒兄銀行 (+電子票證)", "BANKING", "整理 Appwrite bank collection，依台灣銀行、電子票證分類查看所有資產、銀行總資產與電子票證總資產。", "BankStatsActivity"),
             new FeatureMenuItem("美食管理", "FOOD", "搜尋與檢視食物庫存、價格、數量、商店與效期資訊。", "FoodManagementActivity"),
             new FeatureMenuItem("鋒兄筆記", "NOTES", "讀取 article collection，依標題、內容與連結快速搜尋筆記。", "FengNotesActivity"),
             new FeatureMenuItem("常用帳號", "COMMON", "把常用網站與帳號資訊分組，做成桌面端可掃描的清單入口。", "FengCommonActivity"),
@@ -224,7 +224,7 @@ namespace appwritewpftrae20260118
         public bool IsFinanceView => string.Equals(_currentPage, FengFinancePage, StringComparison.Ordinal);
         public bool IsFengToolsSelected => IsFeatureMenuView && string.Equals(SelectedFeatureTitle, "鋒兄工具", StringComparison.Ordinal);
         public bool IsBankFeatureSelected => IsFeatureMenuView && string.Equals(SelectedFeatureTitle, "鋒兄銀行 (+電子票證)", StringComparison.Ordinal);
-        public string BankClassificationNote => "電子票證\n台灣的銀行才是銀行喔！銀行以外的先歸類為電子票證喔！\n1. 銀行帳戶總數是帳戶總數\n2. 電子票證總數是電子票證總數";
+        public string BankClassificationNote => "電子票證\n台灣的銀行才是銀行喔！中華郵政也屬於台灣銀行；銀行以外的先歸類為電子票證喔！\n1. 所有資產\n2. 銀行總資產\n3. 電子票證總資產";
 
         public string SelectedFeatureTitle => _selectedFeatureMenuItem?.Title ?? "功能選單";
         public string SelectedFeatureEyebrow => _selectedFeatureMenuItem?.Eyebrow ?? "ANDROID MENU";
@@ -860,7 +860,7 @@ namespace appwritewpftrae20260118
                 VoiceCommand.ForFeature("音樂管理", "開啟鋒兄音樂", Expand("鋒兄音樂", "音樂", "音樂管理", "歌曲", "歌單", "播放清單", "專輯", "音樂庫", "聲音收藏")),
                 VoiceCommand.ForFeature("文件管理", "開啟鋒兄文件", Expand("鋒兄文件", "文件", "文件管理", "文檔", "檔案", "資料夾", "文件庫", "合約", "報告")),
                 VoiceCommand.ForFeature("播客管理", "開啟鋒兄播客", Expand("鋒兄播客", "播客", "Podcast", "podcast", "節目", "節目清單", "收聽清單", "音頻節目")),
-                VoiceCommand.ForFeature("鋒兄銀行 (+電子票證)", "開啟鋒兄銀行", Expand("鋒兄銀行", "銀行", "銀行統計", "電子票證", "帳戶", "存款", "提款", "轉帳", "財務", "卡片", "錢包")),
+                VoiceCommand.ForFeature("鋒兄銀行 (+電子票證)", "開啟鋒兄銀行", Expand("鋒兄銀行", "銀行", "銀行統計", "中華郵政", "郵政", "電子票證", "所有資產", "銀行總資產", "電子票證總資產", "帳戶", "存款", "提款", "轉帳", "財務", "卡片", "錢包")),
                 VoiceCommand.ForFeature("例行事項", "開啟鋒兄例行", Expand("鋒兄例行", "例行", "例行事項", "routine", "日常", "每日任務", "固定任務", "習慣", "待辦")),
                 VoiceCommand.ForFeature("設定", "開啟鋒兄設定", Expand("鋒兄設定", "設定", "偏好設定", "系統設定", "通知設定", "啟動設定", "語音設定", "本機設定")),
                 VoiceCommand.ForFeature("關於", "開啟鋒兄關於", Expand("鋒兄關於", "關於", "關於鋒兄", "版本資訊", "程式資訊", "維護資訊", "說明頁")),
