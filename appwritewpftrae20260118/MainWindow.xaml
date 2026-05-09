@@ -683,6 +683,9 @@
                                                 <StackPanel>
                                                     <TextBlock Text="{Binding SelectedFeatureTitle}" Foreground="{StaticResource StrongTextBrush}" FontSize="24" FontWeight="SemiBold" />
                                                     <TextBlock Text="{Binding SelectedFeatureDescription}" Margin="0,10,0,0" Style="{StaticResource InfoTextStyle}" FontSize="14" />
+                                                    <Border Margin="0,14,0,0" Padding="12,10" Background="#101B2E" BorderBrush="#2A4264" BorderThickness="1" CornerRadius="12" Visibility="{Binding IsBankFeatureSelected, Converter={StaticResource BoolToVisibilityConverter}}">
+                                                        <TextBlock Text="{Binding BankClassificationNote}" Foreground="#9EB5D8" FontSize="12" TextWrapping="Wrap" LineHeight="20" />
+                                                    </Border>
                                                     <Border Margin="0,18,0,0" Padding="14,12" Background="#14233A" BorderBrush="#2C466A" BorderThickness="1" CornerRadius="14">
                                                         <TextBlock Text="此入口已先對齊 Android 主畫面選單；資料讀取與完整桌面版操作流程會依各功能逐步接上。"
                                                                    Foreground="#C0D2F1"

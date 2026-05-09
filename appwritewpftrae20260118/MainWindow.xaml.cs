@@ -223,6 +223,8 @@ namespace appwritewpftrae20260118
         public bool IsTubeView => string.Equals(_currentPage, FengTubePage, StringComparison.Ordinal);
         public bool IsFinanceView => string.Equals(_currentPage, FengFinancePage, StringComparison.Ordinal);
         public bool IsFengToolsSelected => IsFeatureMenuView && string.Equals(SelectedFeatureTitle, "鋒兄工具", StringComparison.Ordinal);
+        public bool IsBankFeatureSelected => IsFeatureMenuView && string.Equals(SelectedFeatureTitle, "銀行統計", StringComparison.Ordinal);
+        public string BankClassificationNote => "電子票證\n台灣的銀行才是銀行喔！銀行以外的先歸類為電子票證喔！\n1. 銀行帳戶總數是帳戶總數\n2. 電子票證總數是電子票證總數";
 
         public string SelectedFeatureTitle => _selectedFeatureMenuItem?.Title ?? "功能選單";
         public string SelectedFeatureEyebrow => _selectedFeatureMenuItem?.Eyebrow ?? "ANDROID MENU";
@@ -1098,6 +1100,7 @@ namespace appwritewpftrae20260118
             OnPropertyChanged(nameof(IsTubeView));
             OnPropertyChanged(nameof(IsFinanceView));
             OnPropertyChanged(nameof(IsFengToolsSelected));
+            OnPropertyChanged(nameof(IsBankFeatureSelected));
             OnPropertyChanged(nameof(CurrentPageTitle));
             OnPropertyChanged(nameof(CurrentPageSubtitle));
             OnPropertyChanged(nameof(CurrentActionLabel));
