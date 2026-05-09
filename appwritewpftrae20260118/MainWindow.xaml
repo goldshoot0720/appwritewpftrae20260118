@@ -378,10 +378,16 @@
                                 <TextBlock TextAlignment="Center" LineHeight="18">
                                     <Run Text="鋒兄銀行" />
                                     <LineBreak />
-                                    <Run Text="(+電子票證)" />
+                                    <Run Text="(或電子票證)" />
                                 </TextBlock>
                             </Button>
-                            <Button Content="美食管理" Style="{StaticResource MenuButtonStyle}" Click="FoodManagementMenuButton_Click" />
+                            <Button Style="{StaticResource MenuButtonStyle}" Click="FoodManagementMenuButton_Click">
+                                <TextBlock TextAlignment="Center" LineHeight="18">
+                                    <Run Text="鋒兄食品" />
+                                    <LineBreak />
+                                    <Run Text="(或商品)" />
+                                </TextBlock>
+                            </Button>
                             <Button Content="鋒兄筆記" Style="{StaticResource MenuButtonStyle}" Click="FengNotesMenuButton_Click" />
                             <Button Content="常用帳號" Style="{StaticResource MenuButtonStyle}" Click="FengCommonMenuButton_Click" />
                             <Button Content="US Debt" Style="{StaticResource MenuButtonStyle}" Click="UsDebtMenuButton_Click" />

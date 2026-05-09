@@ -135,8 +135,8 @@ namespace appwritewpftrae20260118
         };
         public ObservableCollection<FeatureMenuItem> FeatureMenuItems { get; } = new ObservableCollection<FeatureMenuItem>
         {
-            new FeatureMenuItem("鋒兄銀行\n(+電子票證)", "BANKING", "整理 Appwrite bank collection，依台灣銀行、電子票證分類查看所有資產、銀行總資產與電子票證總資產。", "BankStatsActivity"),
-            new FeatureMenuItem("美食管理", "FOOD", "搜尋與檢視食物庫存、價格、數量、商店與效期資訊。", "FoodManagementActivity"),
+            new FeatureMenuItem("鋒兄銀行\n(或電子票證)", "BANKING", "整理 Appwrite bank collection，依台灣銀行、電子票證分類查看所有資產、銀行總資產與電子票證總資產。", "BankStatsActivity"),
+            new FeatureMenuItem("鋒兄食品\n(或商品)", "FOOD", "搜尋與檢視食品或商品庫存、價格、數量、商店與效期資訊。", "FoodManagementActivity"),
             new FeatureMenuItem("鋒兄筆記", "NOTES", "讀取 article collection，依標題、內容與連結快速搜尋筆記。", "FengNotesActivity"),
             new FeatureMenuItem("常用帳號", "COMMON", "把常用網站與帳號資訊分組，做成桌面端可掃描的清單入口。", "FengCommonActivity"),
             new FeatureMenuItem("US Debt", "US DEBT", "追蹤美國國債數值與歷史趨勢。", "USDebtActivity"),
@@ -223,7 +223,7 @@ namespace appwritewpftrae20260118
         public bool IsTubeView => string.Equals(_currentPage, FengTubePage, StringComparison.Ordinal);
         public bool IsFinanceView => string.Equals(_currentPage, FengFinancePage, StringComparison.Ordinal);
         public bool IsFengToolsSelected => IsFeatureMenuView && string.Equals(SelectedFeatureTitle, "鋒兄工具", StringComparison.Ordinal);
-        public bool IsBankFeatureSelected => IsFeatureMenuView && string.Equals(SelectedFeatureTitle, "鋒兄銀行\n(+電子票證)", StringComparison.Ordinal);
+        public bool IsBankFeatureSelected => IsFeatureMenuView && string.Equals(SelectedFeatureTitle, "鋒兄銀行\n(或電子票證)", StringComparison.Ordinal);
         public string BankClassificationNote => "電子票證\n台灣的銀行才是銀行喔！中華郵政也屬於台灣銀行；銀行以外的先歸類為電子票證喔！\n1. 所有資產\n2. 銀行總資產\n3. 電子票證總資產";
 
         public string SelectedFeatureTitle => _selectedFeatureMenuItem?.Title ?? "功能選單";
@@ -852,7 +852,7 @@ namespace appwritewpftrae20260118
                 VoiceCommand.ForFeature("鋒兄首頁", "開啟鋒兄首頁", Expand("鋒兄首頁", "首頁", "主畫面", "主頁", "首頁入口", "桌面控制台", "控制台", "回首頁", "回主畫面")),
                 VoiceCommand.ForFeature("鋒兄儀表", "開啟鋒兄儀表", Expand("鋒兄儀表", "儀表", "儀表板", "dashboard", "總覽", "狀態總覽", "數據總覽", "統計總覽")),
                 new VoiceCommand(VoiceCommandAction.Subscription, null, "開啟鋒兄訂閱", Expand("鋒兄訂閱", "訂閱", "訂閱提醒", "訂閱到期", "到期提醒", "付款提醒", "扣款提醒", "月費", "會員訂閱")),
-                VoiceCommand.ForFeature("美食管理", "開啟鋒兄食品", Expand("鋒兄食品", "食品", "食物", "美食", "美食管理", "食物庫存", "食品庫存", "吃的", "餐點", "食材")),
+                VoiceCommand.ForFeature("鋒兄食品\n(或商品)", "開啟鋒兄食品", Expand("鋒兄食品", "食品", "商品", "食物", "美食", "美食管理", "商品管理", "食物庫存", "食品庫存", "商品庫存", "吃的", "餐點", "食材")),
                 VoiceCommand.ForFeature("鋒兄筆記", "開啟鋒兄筆記", Expand("鋒兄筆記", "筆記", "記事", "文章", "鋒兄文章", "文字筆記", "備忘錄", "知識庫", "靈感")),
                 VoiceCommand.ForFeature("常用帳號", "開啟鋒兄常用", Expand("鋒兄常用", "常用", "常用帳號", "帳號", "網站帳號", "常用網站", "登入資料", "帳密入口")),
                 VoiceCommand.ForFeature("圖片管理", "開啟鋒兄圖片", Expand("鋒兄圖片", "圖片", "圖片管理", "相簿", "照片", "圖庫", "影像", "圖片庫", "照片庫")),
@@ -860,7 +860,7 @@ namespace appwritewpftrae20260118
                 VoiceCommand.ForFeature("音樂管理", "開啟鋒兄音樂", Expand("鋒兄音樂", "音樂", "音樂管理", "歌曲", "歌單", "播放清單", "專輯", "音樂庫", "聲音收藏")),
                 VoiceCommand.ForFeature("文件管理", "開啟鋒兄文件", Expand("鋒兄文件", "文件", "文件管理", "文檔", "檔案", "資料夾", "文件庫", "合約", "報告")),
                 VoiceCommand.ForFeature("播客管理", "開啟鋒兄播客", Expand("鋒兄播客", "播客", "Podcast", "podcast", "節目", "節目清單", "收聽清單", "音頻節目")),
-                VoiceCommand.ForFeature("鋒兄銀行\n(+電子票證)", "開啟鋒兄銀行", Expand("鋒兄銀行", "銀行", "銀行統計", "中華郵政", "郵政", "電子票證", "所有資產", "銀行總資產", "電子票證總資產", "帳戶", "存款", "提款", "轉帳", "財務", "卡片", "錢包")),
+                VoiceCommand.ForFeature("鋒兄銀行\n(或電子票證)", "開啟鋒兄銀行", Expand("鋒兄銀行", "銀行", "銀行統計", "中華郵政", "郵政", "電子票證", "所有資產", "銀行總資產", "電子票證總資產", "帳戶", "存款", "提款", "轉帳", "財務", "卡片", "錢包")),
                 VoiceCommand.ForFeature("例行事項", "開啟鋒兄例行", Expand("鋒兄例行", "例行", "例行事項", "routine", "日常", "每日任務", "固定任務", "習慣", "待辦")),
                 VoiceCommand.ForFeature("設定", "開啟鋒兄設定", Expand("鋒兄設定", "設定", "偏好設定", "系統設定", "通知設定", "啟動設定", "語音設定", "本機設定")),
                 VoiceCommand.ForFeature("關於", "開啟鋒兄關於", Expand("鋒兄關於", "關於", "關於鋒兄", "版本資訊", "程式資訊", "維護資訊", "說明頁")),
@@ -1017,12 +1017,12 @@ namespace appwritewpftrae20260118
 
         private void BankStatsMenuButton_Click(object sender, RoutedEventArgs e)
         {
-            ShowFeatureMenu("鋒兄銀行\n(+電子票證)");
+            ShowFeatureMenu("鋒兄銀行\n(或電子票證)");
         }
 
         private void FoodManagementMenuButton_Click(object sender, RoutedEventArgs e)
         {
-            ShowFeatureMenu("美食管理");
+            ShowFeatureMenu("鋒兄食品\n(或商品)");
         }
 
         private void FengNotesMenuButton_Click(object sender, RoutedEventArgs e)
