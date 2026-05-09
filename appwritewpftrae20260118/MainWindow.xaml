@@ -374,7 +374,13 @@
                             <Button Content="訂閱到期提醒" Style="{StaticResource MenuButtonStyle}" Click="SubscriptionsMenuButton_Click" />
                             <Button Content="油價追蹤" Style="{StaticResource MenuButtonStyle}" Click="OilMonitorMenuButton_Click" />
                             <Button Content="最瞎結婚理由" Style="{StaticResource MenuButtonStyle}" Click="LotteryMenuButton_Click" />
-                            <Button Content="鋒兄銀行 (+電子票證)" Style="{StaticResource MenuButtonStyle}" Click="BankStatsMenuButton_Click" />
+                            <Button Style="{StaticResource MenuButtonStyle}" Click="BankStatsMenuButton_Click">
+                                <TextBlock TextAlignment="Center" LineHeight="18">
+                                    <Run Text="鋒兄銀行" />
+                                    <LineBreak />
+                                    <Run Text="(+電子票證)" />
+                                </TextBlock>
+                            </Button>
                             <Button Content="美食管理" Style="{StaticResource MenuButtonStyle}" Click="FoodManagementMenuButton_Click" />
                             <Button Content="鋒兄筆記" Style="{StaticResource MenuButtonStyle}" Click="FengNotesMenuButton_Click" />
                             <Button Content="常用帳號" Style="{StaticResource MenuButtonStyle}" Click="FengCommonMenuButton_Click" />
