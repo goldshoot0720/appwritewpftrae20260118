@@ -18,6 +18,7 @@ using System.Threading.Tasks;
 using System.Timers;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
@@ -41,6 +42,7 @@ namespace appwritewpftrae20260118
         private readonly HttpClient _httpClient = new HttpClient();
         private readonly string _oilHistoryFilePath;
         private readonly string _financeStateFilePath;
+        private readonly string _subscriptionSearchHistoryFilePath;
         private readonly List<LotteryPick> _superLottoPicks = new List<LotteryPick>
         {
             LotteryPick.WithSpecial("第一組", new[] { 7, 11, 23, 32, 33, 38 }, 2),
@@ -96,9 +98,12 @@ namespace appwritewpftrae20260118
         private string _tubeStatusMessage = "鋒兄Tube 尚未載入";
         private string _tubeFreshAlertMessage = string.Empty;
         private string _financeStatusMessage = "鋒兄金融尚未載入";
+        private string _subscriptionSearchText = string.Empty;
         private Visibility _tubeFreshAlertVisibility = Visibility.Collapsed;
 
         public ObservableCollection<Subscription> Subscriptions { get; } = new ObservableCollection<Subscription>();
+        public ObservableCollection<Subscription> FilteredSubscriptions { get; } = new ObservableCollection<Subscription>();
+        public ObservableCollection<string> SubscriptionSearchHistory { get; } = new ObservableCollection<string>();
         public ObservableCollection<OilPriceRecord> OilPriceHistory { get; } = new ObservableCollection<OilPriceRecord>();
         public ObservableCollection<OilPriceRecord> OilRecentRecords { get; } = new ObservableCollection<OilPriceRecord>();
         public ObservableCollection<LotteryResultRow> SuperLottoRows { get; } = new ObservableCollection<LotteryResultRow>();
@@ -171,6 +176,11 @@ namespace appwritewpftrae20260118
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "AppwriteSubscriptionViewer",
                 "finance-highlow.json");
+            _subscriptionSearchHistoryFilePath = System.IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "AppwriteSubscriptionViewer",
+                "subscription-search-history.json");
+            LoadSubscriptionSearchHistoryFromDisk();
             InitializeNotificationIcon();
             _httpClient.Timeout = TimeSpan.FromSeconds(20);
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("AppwriteSubscriptionViewer/1.0");
@@ -224,7 +234,20 @@ namespace appwritewpftrae20260118
         public bool IsFinanceView => string.Equals(_currentPage, FengFinancePage, StringComparison.Ordinal);
         public bool IsFengToolsSelected => IsFeatureMenuView && string.Equals(SelectedFeatureTitle, "鋒兄工具", StringComparison.Ordinal);
         public bool IsBankFeatureSelected => IsFeatureMenuView && string.Equals(SelectedFeatureTitle, "鋒兄銀行\n(或電子票證)", StringComparison.Ordinal);
+        public bool HasSubscriptionSearchHistory => SubscriptionSearchHistory.Count > 0;
         public string BankClassificationNote => "電子票證\n台灣的銀行才是銀行喔！中華郵政也屬於台灣銀行；銀行以外的先歸類為電子票證喔！\n1. 所有資產\n2. 銀行總資產\n3. 電子票證總資產";
+
+        public string SubscriptionSearchText
+        {
+            get => _subscriptionSearchText;
+            set
+            {
+                if (_subscriptionSearchText == value) return;
+                _subscriptionSearchText = value ?? string.Empty;
+                OnPropertyChanged(nameof(SubscriptionSearchText));
+                ApplySubscriptionSearch();
+            }
+        }
 
         public string SelectedFeatureTitle => _selectedFeatureMenuItem?.Title ?? "功能選單";
         public string SelectedFeatureEyebrow => _selectedFeatureMenuItem?.Eyebrow ?? "ANDROID MENU";
@@ -1002,6 +1025,32 @@ namespace appwritewpftrae20260118
             UpdatePageState();
         }
 
+        private void SubscriptionSearchTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Enter) return;
+            AddSubscriptionSearchHistory(SubscriptionSearchText);
+        }
+
+        private void SearchSubscriptionButton_Click(object sender, RoutedEventArgs e)
+        {
+            AddSubscriptionSearchHistory(SubscriptionSearchText);
+            ApplySubscriptionSearch();
+        }
+
+        private void ClearSubscriptionSearchButton_Click(object sender, RoutedEventArgs e)
+        {
+            SubscriptionSearchText = string.Empty;
+        }
+
+        private void SubscriptionSearchHistoryButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.Tag is string keyword)
+            {
+                SubscriptionSearchText = keyword;
+                AddSubscriptionSearchHistory(keyword);
+            }
+        }
+
         private void OilMonitorMenuButton_Click(object sender, RoutedEventArgs e)
         {
             _currentPage = OilMonitorPage;
@@ -1600,9 +1649,13 @@ namespace appwritewpftrae20260118
                     {
                         Subscriptions.Add(item);
                     }
+
+                    ApplySubscriptionSearch();
                 });
 
-                StatusMessage = $"已載入 {Subscriptions.Count} 筆訂閱資料。";
+                StatusMessage = string.IsNullOrWhiteSpace(SubscriptionSearchText)
+                    ? $"已載入 {Subscriptions.Count} 筆訂閱資料。"
+                    : $"已載入 {Subscriptions.Count} 筆訂閱資料，搜尋「{SubscriptionSearchText}」符合 {FilteredSubscriptions.Count} 筆。";
             }
             catch (AppwriteException ex)
             {
@@ -1612,6 +1665,105 @@ namespace appwritewpftrae20260118
             {
                 StatusMessage = $"發生未預期錯誤：{ex.Message}";
             }
+        }
+
+        private void ApplySubscriptionSearch()
+        {
+            var keyword = (SubscriptionSearchText ?? string.Empty).Trim();
+            var filtered = string.IsNullOrWhiteSpace(keyword)
+                ? Subscriptions.ToList()
+                : Subscriptions.Where(subscription => SubscriptionMatches(subscription, keyword)).ToList();
+
+            FilteredSubscriptions.Clear();
+            foreach (var item in filtered)
+            {
+                FilteredSubscriptions.Add(item);
+            }
+
+            if (Subscriptions.Count > 0)
+            {
+                StatusMessage = string.IsNullOrWhiteSpace(keyword)
+                    ? $"已顯示全部 {FilteredSubscriptions.Count} 筆訂閱資料。"
+                    : $"搜尋「{keyword}」符合 {FilteredSubscriptions.Count} / {Subscriptions.Count} 筆訂閱資料。";
+            }
+        }
+
+        private static bool SubscriptionMatches(Subscription subscription, string keyword)
+        {
+            if (subscription == null) return false;
+            var fields = new[]
+            {
+                subscription.Id,
+                subscription.Name,
+                subscription.Site,
+                subscription.Price?.ToString(CultureInfo.InvariantCulture),
+                subscription.NextDateString,
+                subscription.Account,
+                subscription.Note,
+                subscription.CreatedAtString,
+                subscription.UpdatedAtString
+            };
+
+            return fields.Any(field => !string.IsNullOrWhiteSpace(field) &&
+                                       field.IndexOf(keyword, StringComparison.OrdinalIgnoreCase) >= 0);
+        }
+
+        private void AddSubscriptionSearchHistory(string keyword)
+        {
+            keyword = (keyword ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(keyword)) return;
+
+            var existing = SubscriptionSearchHistory
+                .FirstOrDefault(item => string.Equals(item, keyword, StringComparison.OrdinalIgnoreCase));
+            if (existing != null)
+            {
+                SubscriptionSearchHistory.Remove(existing);
+            }
+
+            SubscriptionSearchHistory.Insert(0, keyword);
+            while (SubscriptionSearchHistory.Count > 8)
+            {
+                SubscriptionSearchHistory.RemoveAt(SubscriptionSearchHistory.Count - 1);
+            }
+
+            OnPropertyChanged(nameof(HasSubscriptionSearchHistory));
+            SaveSubscriptionSearchHistoryToDisk();
+        }
+
+        private void LoadSubscriptionSearchHistoryFromDisk()
+        {
+            try
+            {
+                if (!File.Exists(_subscriptionSearchHistoryFilePath)) return;
+
+                var json = File.ReadAllText(_subscriptionSearchHistoryFilePath);
+                var records = JsonSerializer.Deserialize<List<string>>(json) ?? new List<string>();
+                SubscriptionSearchHistory.Clear();
+                foreach (var record in records.Where(x => !string.IsNullOrWhiteSpace(x)).Take(8))
+                {
+                    SubscriptionSearchHistory.Add(record.Trim());
+                }
+
+                OnPropertyChanged(nameof(HasSubscriptionSearchHistory));
+            }
+            catch
+            {
+                SubscriptionSearchHistory.Clear();
+                OnPropertyChanged(nameof(HasSubscriptionSearchHistory));
+            }
+        }
+
+        private void SaveSubscriptionSearchHistoryToDisk()
+        {
+            var directory = System.IO.Path.GetDirectoryName(_subscriptionSearchHistoryFilePath);
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            var records = SubscriptionSearchHistory.ToList();
+            var json = JsonSerializer.Serialize(records, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(_subscriptionSearchHistoryFilePath, json);
         }
 
         private async Task RefreshOilDataAsync(bool forceFetch)

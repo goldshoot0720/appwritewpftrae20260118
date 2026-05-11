@@ -431,6 +431,7 @@
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
                                     <RowDefinition Height="*" />
                                 </Grid.RowDefinitions>
                                 <Border Grid.Row="0" Background="#111E33" BorderBrush="#203150" BorderThickness="0,0,0,1" CornerRadius="23,23,0,0" Padding="18,14">
@@ -443,7 +444,36 @@
                                         <TextBlock Grid.Column="1" Text="Appwrite Databases / SUBSCRIPTION" Foreground="#839CC0" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" />
                                     </Grid>
                                 </Border>
-                                <DataGrid Grid.Row="1" ItemsSource="{Binding Subscriptions}" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="Horizontal" HeadersVisibility="Column" RowBackground="#101C31" AlternatingRowBackground="#122038" Background="{StaticResource WindowSurfaceBrush}" Foreground="#E5EDF8" HorizontalGridLinesBrush="#1A2A45" VerticalGridLinesBrush="#1A2A45" BorderThickness="0" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True" CanUserResizeRows="False" RowHeight="42" ColumnHeaderHeight="42" CellStyle="{StaticResource DataGridCellStyle}" RowStyle="{StaticResource DataGridRowStyle}" ColumnHeaderStyle="{StaticResource DataGridHeaderStyle}" SelectionMode="Extended" SelectionUnit="FullRow">
+                                <Border Grid.Row="1" Background="#0F1B2F" BorderBrush="#203150" BorderThickness="0,0,0,1" Padding="18,14">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox Grid.Column="0" Text="{Binding SubscriptionSearchText, UpdateSourceTrigger=PropertyChanged}" KeyDown="SubscriptionSearchTextBox_KeyDown" Height="38" Padding="12,8" Background="#101C31" Foreground="{StaticResource StrongTextBrush}" BorderBrush="#2F496F" BorderThickness="1" FontSize="13" />
+                                            <Button Grid.Column="1" Content="搜尋" Margin="10,0,0,0" Style="{StaticResource MenuButtonStyle}" Click="SearchSubscriptionButton_Click" />
+                                            <Button Grid.Column="2" Content="清除" Margin="10,0,0,0" Style="{StaticResource MenuButtonStyle}" Click="ClearSubscriptionSearchButton_Click" />
+                                        </Grid>
+                                        <StackPanel Margin="0,12,0,0" Visibility="{Binding HasSubscriptionSearchHistory, Converter={StaticResource BoolToVisibilityConverter}}">
+                                            <TextBlock Text="最近搜尋紀錄" Foreground="#839CC0" FontSize="11" FontWeight="SemiBold" />
+                                            <ItemsControl ItemsSource="{Binding SubscriptionSearchHistory}" Margin="0,8,0,0">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <WrapPanel />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Button Content="{Binding}" Tag="{Binding}" Margin="0,0,8,8" Padding="12,7" Style="{StaticResource MenuButtonStyle}" Click="SubscriptionSearchHistoryButton_Click" />
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+                                <DataGrid Grid.Row="2" ItemsSource="{Binding FilteredSubscriptions}" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="Horizontal" HeadersVisibility="Column" RowBackground="#101C31" AlternatingRowBackground="#122038" Background="{StaticResource WindowSurfaceBrush}" Foreground="#E5EDF8" HorizontalGridLinesBrush="#1A2A45" VerticalGridLinesBrush="#1A2A45" BorderThickness="0" CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="True" CanUserResizeRows="False" RowHeight="42" ColumnHeaderHeight="42" CellStyle="{StaticResource DataGridCellStyle}" RowStyle="{StaticResource DataGridRowStyle}" ColumnHeaderStyle="{StaticResource DataGridHeaderStyle}" SelectionMode="Extended" SelectionUnit="FullRow">
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="140" />
                                         <DataGridTextColumn Header="名稱" Binding="{Binding Name}" Width="170" />
