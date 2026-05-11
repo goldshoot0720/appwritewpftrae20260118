@@ -235,6 +235,19 @@
                                                FontWeight="SemiBold"
                                                TextWrapping="Wrap" />
                                 </Border>
+                                <Border Margin="0,12,0,0"
+                                        Padding="12,10"
+                                        Background="#2A1E10"
+                                        BorderBrush="#B67A2B"
+                                        BorderThickness="1"
+                                        CornerRadius="12"
+                                        Visibility="{Binding FinanceBreakoutAlertVisibility}">
+                                    <TextBlock Text="{Binding FinanceBreakoutAlertMessage}"
+                                               Foreground="#FFD987"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               TextWrapping="Wrap" />
+                                </Border>
                                 <Border Margin="0,12,0,0" Padding="14" Background="#101D31" BorderBrush="#2B466A" BorderThickness="1" CornerRadius="14">
                                     <Grid>
                                         <Grid.ColumnDefinitions>
@@ -755,7 +768,7 @@
                                                                 </Grid.ColumnDefinitions>
                                                                 <StackPanel>
                                                                     <TextBlock Text="鋒兄金融" Foreground="{StaticResource StrongTextBrush}" FontSize="18" FontWeight="SemiBold" />
-                                                                    <TextBlock Text="追蹤 CNBC 指數、商品、債券與加密貨幣報價，突破本機記錄時標註創新高或創新低。" Margin="0,8,0,0" Foreground="{StaticResource SuccessBrush}" FontSize="13" TextWrapping="Wrap" />
+                                                                    <TextBlock Text="追蹤 CNBC、Yahoo 與 Multpl 金融報價，突破本機或已知歷史記錄時標註創新高或創新低。" Margin="0,8,0,0" Foreground="{StaticResource SuccessBrush}" FontSize="13" TextWrapping="Wrap" />
                                                                 </StackPanel>
                                                                 <Button Grid.Column="1" Content="開啟金融" MinWidth="96" Height="40" Margin="16,0,0,0" Style="{StaticResource PrimaryButtonStyle}" Click="FengFinanceMenuButton_Click" />
                                                             </Grid>

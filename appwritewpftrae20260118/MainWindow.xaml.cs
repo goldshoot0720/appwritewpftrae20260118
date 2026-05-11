@@ -99,7 +99,9 @@ namespace appwritewpftrae20260118
         private string _tubeFreshAlertMessage = string.Empty;
         private string _financeStatusMessage = "鋒兄金融尚未載入";
         private string _subscriptionSearchText = string.Empty;
+        private string _financeBreakoutAlertMessage = string.Empty;
         private Visibility _tubeFreshAlertVisibility = Visibility.Collapsed;
+        private Visibility _financeBreakoutAlertVisibility = Visibility.Collapsed;
 
         public ObservableCollection<Subscription> Subscriptions { get; } = new ObservableCollection<Subscription>();
         public ObservableCollection<Subscription> FilteredSubscriptions { get; } = new ObservableCollection<Subscription>();
@@ -123,7 +125,8 @@ namespace appwritewpftrae20260118
             new FinancialMarketItem("Bitcoin/USD Coin Metrics", "BTC.CM=", "https://www.cnbc.com/quotes/BTC.CM="),
             new FinancialMarketItem("Ether/USD Coin Metrics", "ETH.CM=", "https://www.cnbc.com/quotes/ETH.CM="),
             new FinancialMarketItem("加權指數", "^TWII", "https://tw.stock.yahoo.com/s/tse.php", FinancialQuoteProvider.Yahoo),
-            new FinancialMarketItem("台積電", "2330.TW", "https://tw.stock.yahoo.com/quote/2330.TW", FinancialQuoteProvider.Yahoo)
+            new FinancialMarketItem("台積電", "2330.TW", "https://tw.stock.yahoo.com/quote/2330.TW", FinancialQuoteProvider.Yahoo),
+            new FinancialMarketItem("Shiller PE Ratio", "SHILLER_PE", "https://www.multpl.com/shiller-pe", FinancialQuoteProvider.Multpl, historicalHigh: 44.19m, historicalLow: 4.78m)
         };
         public ObservableCollection<YouTubeChannelGroup> YouTubeChannels { get; } = new ObservableCollection<YouTubeChannelGroup>
         {
@@ -339,7 +342,7 @@ namespace appwritewpftrae20260118
 
                 if (IsFinanceView)
                 {
-                    return "鋒兄工具子選單，追蹤 CNBC 指數、商品、債券與加密貨幣報價，突破本機記錄時標註創新高或創新低。";
+                    return "鋒兄工具子選單，追蹤 CNBC、Yahoo 與 Multpl 金融報價，突破本機或已知歷史記錄時標註創新高或創新低。";
                 }
 
                 return "根據台灣彩券官方 API 列出威力彩、大樂透、今彩539近三個月每期號碼，並比對你指定的號碼組。";
@@ -380,7 +383,7 @@ namespace appwritewpftrae20260118
                 if (IsOilMonitorView) return "資料來源：Gulf Mercantile Exchange / OQD Daily Marker Price";
                 if (IsFeatureMenuView) return "選單參考：github.com/goldshoot0720/appwriteandroidtrae";
                 if (IsTubeView) return "資料來源：YouTube channel RSS feeds";
-                if (IsFinanceView) return "資料來源：CNBC Quotes";
+                if (IsFinanceView) return "資料來源：CNBC Quotes / Yahoo Finance / Multpl";
                 return "資料來源：台灣彩券官方 API";
             }
         }
@@ -428,6 +431,28 @@ namespace appwritewpftrae20260118
                 if (_tubeFreshAlertVisibility == value) return;
                 _tubeFreshAlertVisibility = value;
                 OnPropertyChanged(nameof(TubeFreshAlertVisibility));
+            }
+        }
+
+        public string FinanceBreakoutAlertMessage
+        {
+            get => _financeBreakoutAlertMessage;
+            set
+            {
+                if (_financeBreakoutAlertMessage == value) return;
+                _financeBreakoutAlertMessage = value;
+                OnPropertyChanged(nameof(FinanceBreakoutAlertMessage));
+            }
+        }
+
+        public Visibility FinanceBreakoutAlertVisibility
+        {
+            get => _financeBreakoutAlertVisibility;
+            set
+            {
+                if (_financeBreakoutAlertVisibility == value) return;
+                _financeBreakoutAlertVisibility = value;
+                OnPropertyChanged(nameof(FinanceBreakoutAlertVisibility));
             }
         }
 
@@ -1237,6 +1262,7 @@ namespace appwritewpftrae20260118
             {
                 var cnbcItems = FinancialMarkets.Where(item => item.Provider == FinancialQuoteProvider.Cnbc).ToList();
                 var yahooItems = FinancialMarkets.Where(item => item.Provider == FinancialQuoteProvider.Yahoo).ToList();
+                var multplItems = FinancialMarkets.Where(item => item.Provider == FinancialQuoteProvider.Multpl).ToList();
                 var symbols = string.Join("|", cnbcItems.Select(item => item.Symbol));
                 var quoteMap = new Dictionary<string, CnbcQuote>(StringComparer.OrdinalIgnoreCase);
                 if (!string.IsNullOrWhiteSpace(symbols))
@@ -1251,6 +1277,12 @@ namespace appwritewpftrae20260118
                 foreach (var item in yahooItems)
                 {
                     var quote = await FetchYahooQuoteAsync(item.Symbol);
+                    quoteMap[NormalizeFinanceSymbol(item.Symbol)] = quote;
+                }
+
+                foreach (var item in multplItems)
+                {
+                    var quote = await FetchMultplQuoteAsync(item.SourceUrl);
                     quoteMap[NormalizeFinanceSymbol(item.Symbol)] = quote;
                 }
 
@@ -1273,7 +1305,7 @@ namespace appwritewpftrae20260118
 
                     if (quote.Last.HasValue)
                     {
-                        var badge = UpdateFinanceHighLowState(state, item.Symbol, quote.Last.Value);
+                        var badge = UpdateFinanceHighLowState(state, item.Symbol, quote.Last.Value, item.HistoricalHigh, item.HistoricalLow);
                         item.HighLowBadge = badge;
                         if (!string.IsNullOrWhiteSpace(badge))
                         {
@@ -1284,9 +1316,19 @@ namespace appwritewpftrae20260118
 
                 SaveFinanceHighLowState(state);
                 FinanceStatusMessage = $"鋒兄金融已更新 {loadedCount}/{FinancialMarkets.Count} 項，時間 {DateTime.Now:HH:mm:ss}";
-                if (showNotification && breakoutMessages.Count > 0)
+                if (breakoutMessages.Count > 0)
                 {
-                    ShowDesktopNotification("鋒兄金融", string.Join("；", breakoutMessages.Take(3)));
+                    FinanceBreakoutAlertMessage = $"鋒兄金融突破提醒：{string.Join("；", breakoutMessages.Take(3))}";
+                    FinanceBreakoutAlertVisibility = Visibility.Visible;
+                    if (showNotification)
+                    {
+                        ShowDesktopNotification("鋒兄金融", string.Join("；", breakoutMessages.Take(3)));
+                    }
+                }
+                else
+                {
+                    FinanceBreakoutAlertMessage = string.Empty;
+                    FinanceBreakoutAlertVisibility = Visibility.Collapsed;
                 }
             }
             catch (Exception ex)
@@ -1342,6 +1384,39 @@ namespace appwritewpftrae20260118
 
                 return new CnbcQuote(last, change, changePercent);
             }
+        }
+
+        private async Task<CnbcQuote> FetchMultplQuoteAsync(string sourceUrl)
+        {
+            var html = await _httpClient.GetStringAsync(sourceUrl);
+            var text = WebUtility.HtmlDecode(Regex.Replace(html, "<[^>]+>", " "));
+            text = Regex.Replace(text, @"\s+", " ");
+            var match = Regex.Match(
+                text,
+                @"Current\s+Shiller\s+PE\s+Ratio:\s*(?<last>[-+]?\d+(?:\.\d+)?)\s*(?<change>[+-]\d+(?:\.\d+)?)?\s*(?:\((?<pct>[+-]?\d+(?:\.\d+)?)%\))?",
+                RegexOptions.IgnoreCase);
+
+            if (!match.Success ||
+                !decimal.TryParse(match.Groups["last"].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var last))
+            {
+                throw new InvalidOperationException("讀不到 Shiller PE Ratio");
+            }
+
+            decimal? change = null;
+            decimal? changePercent = null;
+            if (match.Groups["change"].Success &&
+                decimal.TryParse(match.Groups["change"].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedChange))
+            {
+                change = parsedChange;
+            }
+
+            if (match.Groups["pct"].Success &&
+                decimal.TryParse(match.Groups["pct"].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedPercent))
+            {
+                changePercent = parsedPercent;
+            }
+
+            return new CnbcQuote(last, change, changePercent);
         }
 
         private static decimal? GetOptionalDecimal(JsonElement element, string propertyName)
@@ -1482,13 +1557,17 @@ namespace appwritewpftrae20260118
             File.WriteAllText(_financeStateFilePath, json);
         }
 
-        private static string UpdateFinanceHighLowState(Dictionary<string, FinanceHighLowState> state, string symbol, decimal last)
+        private static string UpdateFinanceHighLowState(Dictionary<string, FinanceHighLowState> state, string symbol, decimal last, decimal? historicalHigh = null, decimal? historicalLow = null)
         {
             var key = NormalizeFinanceSymbol(symbol);
             if (!state.TryGetValue(key, out var record))
             {
-                state[key] = new FinanceHighLowState { High = last, Low = last };
-                return string.Empty;
+                record = new FinanceHighLowState
+                {
+                    High = historicalHigh ?? last,
+                    Low = historicalLow ?? last
+                };
+                state[key] = record;
             }
 
             var badge = string.Empty;
@@ -2574,12 +2653,14 @@ namespace appwritewpftrae20260118
         private string _status = "等待載入";
         private DateTime? _lastUpdated;
 
-        public FinancialMarketItem(string name, string symbol, string sourceUrl, FinancialQuoteProvider provider = FinancialQuoteProvider.Cnbc)
+        public FinancialMarketItem(string name, string symbol, string sourceUrl, FinancialQuoteProvider provider = FinancialQuoteProvider.Cnbc, decimal? historicalHigh = null, decimal? historicalLow = null)
         {
             Name = name;
             Symbol = symbol;
             SourceUrl = sourceUrl;
             Provider = provider;
+            HistoricalHigh = historicalHigh;
+            HistoricalLow = historicalLow;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -2587,6 +2668,8 @@ namespace appwritewpftrae20260118
         public string Symbol { get; }
         public string SourceUrl { get; }
         public FinancialQuoteProvider Provider { get; }
+        public decimal? HistoricalHigh { get; }
+        public decimal? HistoricalLow { get; }
 
         public decimal? Last
         {
@@ -2672,7 +2755,8 @@ namespace appwritewpftrae20260118
     public enum FinancialQuoteProvider
     {
         Cnbc,
-        Yahoo
+        Yahoo,
+        Multpl
     }
 
     internal class CnbcQuote
