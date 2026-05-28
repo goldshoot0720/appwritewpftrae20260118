@@ -38,6 +38,8 @@ namespace appwritewpftrae20260118
         private const string FengFinancePage = "FengFinance";
         private const string LotteryApiBaseUrl = "https://api.taiwanlottery.com/TLCAPIWeB";
         private const int TubeVideoLimitPerChannel = 10;
+        private const int DailySubscriptionNotifyHour = 5;
+        private const int DailySubscriptionNotifyMinute = 23;
 
         private readonly HttpClient _httpClient = new HttpClient();
         private readonly string _oilHistoryFilePath;
@@ -630,7 +632,10 @@ namespace appwritewpftrae20260118
             await LoadFengTubeVideosAsync(showNotification: true);
             await LoadFengFinanceAsync(showNotification: true);
             await CheckAndNotifyExpiringSubscriptions();
-            _lastNotifyDate = DateTime.Today;
+            if (HasReachedDailyTime(DateTime.Now, DailySubscriptionNotifyHour, DailySubscriptionNotifyMinute))
+            {
+                _lastNotifyDate = DateTime.Today;
+            }
             ScheduleDailyTasks();
         }
 
@@ -2310,7 +2315,7 @@ namespace appwritewpftrae20260118
         {
             _dailyTimer = new Timer
             {
-                Interval = TimeSpan.FromMinutes(5).TotalMilliseconds,
+                Interval = TimeSpan.FromMinutes(1).TotalMilliseconds,
                 AutoReset = true,
                 Enabled = true
             };
@@ -2319,7 +2324,7 @@ namespace appwritewpftrae20260118
             {
                 var now = DateTime.Now;
 
-                if (now.Hour >= 18 && _lastNotifyDate.Date != now.Date)
+                if (HasReachedDailyTime(now, DailySubscriptionNotifyHour, DailySubscriptionNotifyMinute) && _lastNotifyDate.Date != now.Date)
                 {
                     await CheckAndNotifyExpiringSubscriptions();
                     _lastNotifyDate = now.Date;
@@ -2349,6 +2354,11 @@ namespace appwritewpftrae20260118
                     _lastFinanceFetchDate = now.Date;
                 }
             };
+        }
+
+        private static bool HasReachedDailyTime(DateTime now, int hour, int minute)
+        {
+            return now.TimeOfDay >= new TimeSpan(hour, minute, 0);
         }
 
         private async Task CheckAndNotifyExpiringSubscriptions()
